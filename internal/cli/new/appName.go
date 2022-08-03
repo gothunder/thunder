@@ -7,6 +7,8 @@ import (
 	"thunder/internal/cli/utils"
 )
 
+var appNameInput = appNameModel()
+
 func appNameModel() textinput.Model {
 	textInputModel := textinput.New()
 	textInputModel.Placeholder = "Enter the application name"
@@ -17,14 +19,12 @@ func appNameModel() textinput.Model {
 	return textInputModel
 }
 
-func appNameRender(m Model) string {
-	return styles.AppStyle.Render(
-		styles.TitleStyle.Render("Creating new application") + "\n" +
-			m.appName.View(),
-	)
+func appNameView(m Model) string {
+	return styles.TitleStyle.Render("Creating new application") + "\n" +
+		appNameInput.View()
 }
 
-func appNameUpdate(m Model, msg tea.Msg) (Model, tea.Cmd) {
+func updateAppName(msg tea.Msg, m Model) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -33,19 +33,13 @@ func appNameUpdate(m Model, msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			m.step = stepModuleSelect
-			m.appName.SetValue(utils.NormalizeToKebabOrSnakeCase(
-				m.appName.Value(),
-			))
-			return m, nil
+			m.AppName = utils.NormalizeToKebabOrSnakeCase(
+				appNameInput.Value(),
+			)
+			return m, viewChanged
 		}
-
-	// We handle errors just like any other message
-	case error:
-		m.err = msg
-		return m, nil
 	}
 
-	m.appName, cmd = m.appName.Update(msg)
+	appNameInput, cmd = appNameInput.Update(msg)
 	return m, cmd
 }
