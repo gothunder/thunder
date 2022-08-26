@@ -5,6 +5,7 @@ import (
 
 	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/gothunder/thunder/internal/events/rabbitmq/manager"
+	"github.com/gothunder/thunder/pkg/events"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
 )
@@ -21,14 +22,16 @@ type rabbitmqConsumer struct {
 	wg *sync.WaitGroup
 }
 
-func NewConsumer(url string, config amqp.Config, log *zerolog.Logger) (rabbitmqConsumer, error) {
-	chManager, err := manager.NewChannelManager(url, config, log)
+func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsumer, error) {
+	config := rabbitmq.LoadConfig(log)
+
+	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log)
 	if err != nil {
-		return rabbitmqConsumer{}, err
+		return &rabbitmqConsumer{}, err
 	}
 
 	consumer := rabbitmqConsumer{
-		config: rabbitmq.LoadConfig(log),
+		config: config,
 		logger: log,
 
 		chManager: chManager,
@@ -36,6 +39,5 @@ func NewConsumer(url string, config amqp.Config, log *zerolog.Logger) (rabbitmqC
 		wg: &sync.WaitGroup{},
 	}
 
-	consumer.startConsumer([]string{"test"})
-	return consumer, nil
+	return &consumer, nil
 }

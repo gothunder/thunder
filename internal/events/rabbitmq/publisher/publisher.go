@@ -5,6 +5,7 @@ import (
 
 	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/gothunder/thunder/internal/events/rabbitmq/manager"
+	"github.com/gothunder/thunder/pkg/events"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
 )
@@ -29,14 +30,16 @@ type rabbitmqPublisher struct {
 	notifyPublishChan chan amqp.Confirmation
 }
 
-func NewPublisher(url string, config amqp.Config, log *zerolog.Logger) (rabbitmqPublisher, error) {
-	chManager, err := manager.NewChannelManager(url, config, log)
+func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublisher, error) {
+	config := rabbitmq.LoadConfig(log)
+
+	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log)
 	if err != nil {
 		return rabbitmqPublisher{}, err
 	}
 
 	publisher := rabbitmqPublisher{
-		config: rabbitmq.LoadConfig(log),
+		config: config,
 		logger: log,
 
 		chManager: chManager,

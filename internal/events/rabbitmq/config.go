@@ -39,12 +39,13 @@ func LoadConfig(log *zerolog.Logger) Config {
 	concurrency := os.Getenv("RABBITMQ_CONSUMER_CONCURRENCY")
 	if concurrency != "" {
 		parsedConcurrency, err := strconv.Atoi(concurrency)
-		if err != nil {
-			parsedConcurrency = 2
-			log.Warn().Err(err).Msgf("failed to parse RABBITMQ_CONSUMER_CONCURRENCY, defaulting to %s", parsedConcurrency)
+		if err == nil {
+			c.ConsumerConcurrency = parsedConcurrency
 		}
-
-		c.ConsumerConcurrency = parsedConcurrency
+	}
+	if c.ConsumerConcurrency == 0 {
+		c.ConsumerConcurrency = 2
+		log.Warn().Msgf("failed to parse RABBITMQ_CONSUMER_CONCURRENCY, defaulting to %s", c.ConsumerConcurrency)
 	}
 
 	return c
