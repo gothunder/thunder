@@ -20,6 +20,9 @@ type rabbitmqConsumer struct {
 
 	// Wait group used to wait for all the consumer handlers to finish
 	wg *sync.WaitGroup
+
+	// Stop consumer
+	stop chan bool
 }
 
 func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsumer, error) {
@@ -37,6 +40,8 @@ func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsume
 		chManager: chManager,
 
 		wg: &sync.WaitGroup{},
+
+		stop: make(chan bool, config.ConsumerConcurrency),
 	}
 
 	return &consumer, nil

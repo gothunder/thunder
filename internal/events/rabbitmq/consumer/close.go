@@ -1,14 +1,15 @@
 package consumer
 
-import "fmt"
-
 // Graceful shutdown of the consumer.
 func (r *rabbitmqConsumer) Close() error {
 	r.logger.Info().Msg("closing consumer")
 
-	// TODO stop consuming messages first
+	// We send a stop signal to all the handlers
+	for i := 0; i < r.config.ConsumerConcurrency; i++ {
+		r.stop <- true
+	}
+
 	// We'll block till all the active go routines are done
-	fmt.Printf("waiting on waitgroup\n")
 	r.wg.Wait()
 
 	// Now we'll close the channel
