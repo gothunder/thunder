@@ -4,39 +4,32 @@ import (
 	"context"
 
 	"github.com/gothunder/thunder/pkg/events"
+	"github.com/rotisserie/eris"
 )
 
 func (r *rabbitmqConsumer) Subscribe(
 	ctx context.Context,
-	handlers []events.EventHandler,
+	eventHandlers []events.EventHandler,
 ) error {
-	// TODO stop when there's a graceful shutdown
+	handlers, routingKeys := mapRoutingKeyToHandler(eventHandlers)
+
 	for {
-		err := r.startGoRoutines(handlers)
+		err := r.startGoRoutines(handlers, routingKeys)
 		if err != nil {
-			// TODO handle error
-			break
+			return eris.Wrap(err, "failed to start go routines")
 		}
 
 		// Check if the channel reconnects
 		err = <-r.chManager.NotifyReconnection
 		if err != nil {
-			// TODO handle error
-			break
+			return eris.Wrap(err, "failed to reconnect to the amqp channel")
 		}
 
 		r.logger.Info().Msg("restarting consumer after reconnection")
 	}
-
-	return nil
 }
 
-func (r *rabbitmqConsumer) startGoRoutines(handlers []events.EventHandler) error {
-	var routingKeys []string
-	for _, handler := range handlers {
-		routingKeys = append(routingKeys, handler.Topic)
-	}
-
+func (r *rabbitmqConsumer) startGoRoutines(handlers routingKeyHandlerMap, routingKeys []string) error {
 	err := r.declare(routingKeys)
 	if err != nil {
 		return err

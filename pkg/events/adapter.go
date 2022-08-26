@@ -12,6 +12,8 @@ type EventConsumer interface {
 }
 
 type EventPublisher interface {
+	StartPublisher() error
+
 	Publish(
 		context.Context,
 		Event,

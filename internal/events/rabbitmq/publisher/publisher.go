@@ -53,6 +53,5 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 		notifyPublishChan: make(chan amqp.Confirmation),
 	}
 
-	publisher.startPublisher()
 	return publisher, nil
 }

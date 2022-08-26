@@ -25,22 +25,22 @@ func LoadConfig(log *zerolog.Logger) Config {
 
 	if c.ExchangeName == "" {
 		c.ExchangeName = "events"
-		log.Warn().Msgf("RABBITMQ_EXCHANGE_NAME is not set, defaulting to %s", c.ExchangeName)
+		log.Info().Msgf("RABBITMQ_EXCHANGE_NAME is not set, defaulting to %s", c.ExchangeName)
 	}
 
 	if c.QueueName == "" {
 		c.QueueName = "example_queue"
-		log.Warn().Msgf("RABBITMQ_QUEUE_NAME is not set, defaulting to %s", c.QueueName)
+		log.Info().Msgf("RABBITMQ_QUEUE_NAME is not set, defaulting to %s", c.QueueName)
 	}
 
 	if c.URL == "" {
 		c.URL = "amqp://guest:guest@localhost:5672"
-		log.Warn().Msgf("RABBITMQ_URL is not set, defaulting to %s", c.URL)
+		log.Info().Msgf("RABBITMQ_URL is not set, defaulting to %s", c.URL)
 	}
 
 	if c.ConsumerName == "" {
 		c.ConsumerName = "example_consumer"
-		log.Warn().Msgf("RABBITMQ_CONSUMER_NAME is not set, defaulting to %s", c.ConsumerName)
+		log.Info().Msgf("RABBITMQ_CONSUMER_NAME is not set, defaulting to %s", c.ConsumerName)
 	}
 
 	concurrency := os.Getenv("RABBITMQ_CONSUMER_CONCURRENCY")
@@ -52,7 +52,7 @@ func LoadConfig(log *zerolog.Logger) Config {
 	}
 	if c.ConsumerConcurrency == 0 {
 		c.ConsumerConcurrency = 10
-		log.Warn().Msgf("failed to parse RABBITMQ_CONSUMER_CONCURRENCY, defaulting to %d", c.ConsumerConcurrency)
+		log.Info().Msgf("RABBITMQ_CONSUMER_CONCURRENCY is not set, defaulting to %d", c.ConsumerConcurrency)
 	}
 
 	return c
