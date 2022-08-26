@@ -11,6 +11,7 @@ type Config struct {
 	ExchangeName        string
 	QueueName           string
 	URL                 string
+	ConsumerName        string
 	ConsumerConcurrency int
 }
 
@@ -19,6 +20,7 @@ func LoadConfig(log *zerolog.Logger) Config {
 		ExchangeName: os.Getenv("RABBITMQ_EXCHANGE_NAME"),
 		QueueName:    os.Getenv("RABBITMQ_QUEUE_NAME"),
 		URL:          os.Getenv("RABBITMQ_URL"),
+		ConsumerName: os.Getenv("RABBITMQ_CONSUMER_NAME"),
 	}
 
 	if c.ExchangeName == "" {
@@ -36,6 +38,11 @@ func LoadConfig(log *zerolog.Logger) Config {
 		log.Warn().Msgf("RABBITMQ_URL is not set, defaulting to %s", c.URL)
 	}
 
+	if c.ConsumerName == "" {
+		c.ConsumerName = "example_consumer"
+		log.Warn().Msgf("RABBITMQ_CONSUMER_NAME is not set, defaulting to %s", c.ConsumerName)
+	}
+
 	concurrency := os.Getenv("RABBITMQ_CONSUMER_CONCURRENCY")
 	if concurrency != "" {
 		parsedConcurrency, err := strconv.Atoi(concurrency)
@@ -44,8 +51,8 @@ func LoadConfig(log *zerolog.Logger) Config {
 		}
 	}
 	if c.ConsumerConcurrency == 0 {
-		c.ConsumerConcurrency = 2
-		log.Warn().Msgf("failed to parse RABBITMQ_CONSUMER_CONCURRENCY, defaulting to %s", c.ConsumerConcurrency)
+		c.ConsumerConcurrency = 10
+		log.Warn().Msgf("failed to parse RABBITMQ_CONSUMER_CONCURRENCY, defaulting to %d", c.ConsumerConcurrency)
 	}
 
 	return c

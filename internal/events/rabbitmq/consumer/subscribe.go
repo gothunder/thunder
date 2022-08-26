@@ -44,7 +44,7 @@ func (r *rabbitmqConsumer) startGoRoutines(handlers []events.EventHandler) error
 
 	msgs, err := r.chManager.Channel.Consume(
 		r.config.QueueName,
-		"",
+		r.config.ConsumerName,
 		false,
 		true,
 		false,

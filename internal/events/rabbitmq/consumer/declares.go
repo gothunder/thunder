@@ -25,7 +25,7 @@ func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 	}
 
 	err = r.chManager.Channel.Qos(
-		0, 0, false,
+		r.config.ConsumerConcurrency, 0, false,
 	)
 	if err != nil {
 		return err

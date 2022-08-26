@@ -4,10 +4,8 @@ package consumer
 func (r *rabbitmqConsumer) Close() error {
 	r.logger.Info().Msg("closing consumer")
 
-	// We send a stop signal to all the handlers
-	for i := 0; i < r.config.ConsumerConcurrency; i++ {
-		r.stop <- true
-	}
+	// First we stop sending new messages to the consumer
+	r.chManager.Channel.Cancel(r.config.ConsumerName, true)
 
 	// We'll block till all the active go routines are done
 	r.wg.Wait()
