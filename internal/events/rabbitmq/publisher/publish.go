@@ -6,6 +6,7 @@ import (
 
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func (r *rabbitmqPublisher) Publish(ctx context.Context, event events.Event) {
@@ -44,6 +45,32 @@ func (r *rabbitmqPublisher) publishEvent(event events.Event) {
 		message,
 	)
 	if err != nil {
+		// If the channel is closed, we need to reconnect and re-publish the event.
+		r.pausePublishMux.Lock()
+		r.pausePublish = true
+		r.pausePublishMux.Unlock()
+
 		r.unpublishedEvents <- event
+	}
+}
+
+// Check if the messages are being delivered
+func (r *rabbitmqPublisher) handleNotifyConfirm() {
+	err := r.chManager.Channel.Confirm(false)
+	if err != nil {
+		r.logger.Error().Err(err).Msg("failed to enable publisher confirmations")
+		return
+	}
+
+	notifyConfirmChan := r.chManager.Channel.NotifyPublish(
+		make(chan amqp.Confirmation),
+	)
+
+	for conf := range notifyConfirmChan {
+		if !conf.Ack {
+			r.logger.Error().Interface("confirmation", conf).Msg("failed to publish event")
+		}
+
+		r.wg.Done()
 	}
 }

@@ -5,6 +5,10 @@ import (
 )
 
 func (r *rabbitmqPublisher) proccess() error {
+	r.pausePublishMux.Lock()
+	r.pausePublish = false
+	r.pausePublishMux.Unlock()
+
 	for {
 		select {
 		case err := <-r.chManager.NotifyReconnection:

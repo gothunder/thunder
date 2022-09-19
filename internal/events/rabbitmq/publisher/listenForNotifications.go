@@ -60,24 +60,3 @@ func (r *rabbitmqPublisher) handleNotifyReturn() {
 		r.logger.Error().Interface("return", ret).Msg("failed to publish event")
 	}
 }
-
-// Check if the messages are being delivered
-func (r *rabbitmqPublisher) handleNotifyConfirm() {
-	err := r.chManager.Channel.Confirm(false)
-	if err != nil {
-		r.logger.Error().Err(err).Msg("failed to enable publisher confirmations")
-		return
-	}
-
-	notifyConfirmChan := r.chManager.Channel.NotifyPublish(
-		make(chan amqp.Confirmation),
-	)
-
-	for conf := range notifyConfirmChan {
-		if !conf.Ack {
-			r.logger.Error().Interface("confirmation", conf).Msg("failed to publish event")
-		}
-
-		r.wg.Done()
-	}
-}
