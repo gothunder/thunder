@@ -9,12 +9,11 @@ import (
 
 func (r *rabbitmqConsumer) Subscribe(
 	ctx context.Context,
-	eventHandlers []events.EventHandler,
+	topics []string,
+	handler events.HandlerFunc,
 ) error {
-	handlers, routingKeys := mapRoutingKeyToHandler(eventHandlers)
-
 	for {
-		err := r.startGoRoutines(handlers, routingKeys)
+		err := r.startGoRoutines(topics, handler)
 		if err != nil {
 			return eris.Wrap(err, "failed to start go routines")
 		}
@@ -29,8 +28,8 @@ func (r *rabbitmqConsumer) Subscribe(
 	}
 }
 
-func (r *rabbitmqConsumer) startGoRoutines(handlers routingKeyHandlerMap, routingKeys []string) error {
-	err := r.declare(routingKeys)
+func (r *rabbitmqConsumer) startGoRoutines(topics []string, handler events.HandlerFunc) error {
+	err := r.declare(topics)
 	if err != nil {
 		return err
 	}
@@ -44,10 +43,17 @@ func (r *rabbitmqConsumer) startGoRoutines(handlers routingKeyHandlerMap, routin
 		false,
 		nil,
 	)
+	if err != nil {
+		return eris.Wrap(err, "failed to consume messages")
+	}
 
+	r.wg.Add(r.config.ConsumerConcurrency)
 	for i := 0; i < r.config.ConsumerConcurrency; i++ {
-		// The msg channel will be closed when the amqp channel is closed
-		go r.handler(msgs, handlers)
+		go func() {
+			// The msg channel will be closed when the amqp channel is closed
+			r.handler(msgs, handler)
+			r.wg.Done()
+		}()
 	}
 	r.logger.Info().Msgf("processing messages on %v goroutines", r.config.ConsumerConcurrency)
 

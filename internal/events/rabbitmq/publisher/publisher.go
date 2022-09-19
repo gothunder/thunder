@@ -18,12 +18,15 @@ type rabbitmqPublisher struct {
 	// Connection manager
 	chManager *manager.ChannelManager
 
-	// These flags are used to prevent the publisher from publishing messages to the queue
-	pausePublish    bool
-	pausePublishMux *sync.RWMutex
+	// Channel for publishing events
+	unpublishedEvents chan events.Event
 
 	// Wait group used to wait for all the publishes to finish
 	wg *sync.WaitGroup
+
+	// These flags are used to prevent the publisher from publishing messages to the queue
+	pausePublish    bool
+	pausePublishMux *sync.RWMutex
 
 	// These fields are used to keep track of the publisher's state
 	notifyReturnChan  chan amqp.Return
@@ -35,7 +38,7 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 
 	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log)
 	if err != nil {
-		return rabbitmqPublisher{}, err
+		return &rabbitmqPublisher{}, err
 	}
 
 	publisher := rabbitmqPublisher{
@@ -44,14 +47,15 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 
 		chManager: chManager,
 
+		unpublishedEvents: make(chan events.Event),
+		wg:                &sync.WaitGroup{},
+
 		pausePublish:    false,
 		pausePublishMux: &sync.RWMutex{},
-
-		wg: &sync.WaitGroup{},
 
 		notifyReturnChan:  make(chan amqp.Return),
 		notifyPublishChan: make(chan amqp.Confirmation),
 	}
 
-	return publisher, nil
+	return &publisher, nil
 }

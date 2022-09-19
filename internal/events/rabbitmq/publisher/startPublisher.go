@@ -2,7 +2,9 @@ package publisher
 
 import "github.com/rotisserie/eris"
 
-func (r rabbitmqPublisher) StartPublisher() error {
+func (r *rabbitmqPublisher) StartPublisher() error {
+	go r.proccess()
+
 	for {
 		r.listenForNotifications()
 

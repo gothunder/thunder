@@ -16,12 +16,4 @@ const (
 )
 
 // The function that will be called when a message is received.
-type HandlerFunc func(context.Context, Event) HandlerResponse
-
-type EventHandler struct {
-	// You can use the Topic field to filter the events.
-	// If the Topic field is empty, this will be a catch-all handler.
-	Topic string
-
-	Handler HandlerFunc
-}
+type HandlerFunc func(ctx context.Context, topic string, payload []byte) HandlerResponse
