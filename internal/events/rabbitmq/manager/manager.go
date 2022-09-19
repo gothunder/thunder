@@ -38,6 +38,8 @@ func NewChannelManager(url string, conf amqp.Config, log *zerolog.Logger) (*Chan
 		Connection: conn,
 		Channel:    ch,
 		ChannelMux: &sync.RWMutex{},
+
+		NotifyReconnection: make(chan error),
 	}
 
 	// Launch a gorouting to listen for any errors and reconnect if necessary

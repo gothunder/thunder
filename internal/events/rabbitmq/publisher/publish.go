@@ -2,29 +2,42 @@ package publisher
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/gothunder/thunder/pkg/events"
+	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/rotisserie/eris"
 )
 
-func (r rabbitmqPublisher) Publish(ctx context.Context, event events.Event) error {
-	r.pausePublishMux.RLock()
-	defer r.pausePublishMux.RUnlock()
+func (r *rabbitmqPublisher) Publish(ctx context.Context, event events.Event) {
+	r.wg.Add(1)
+	r.unpublishedEvents <- event
+}
 
+func (r *rabbitmqPublisher) publishEvent(event events.Event) {
+	r.pausePublishMux.RLock()
 	if r.pausePublish {
-		// TODO handle this
-		return eris.New("publishing is paused")
+		r.unpublishedEvents <- event
+		r.pausePublishMux.RUnlock()
+		return
+	}
+	r.pausePublishMux.RUnlock()
+
+	body, err := json.Marshal(event.Payload)
+	if err != nil {
+		r.logger.Error().Interface("event", event).Err(err).Msg("failed to encode event")
+		r.wg.Done()
+		return
 	}
 
-	message := amqp.Publishing{
+	message := amqp091.Publishing{
 		ContentType:  "application/json",
-		DeliveryMode: amqp.Persistent,
-		Body:         []byte("{}"),
+		DeliveryMode: amqp091.Persistent,
+		Body:         body,
 	}
 
 	// Actual publish.
-	err := r.chManager.Channel.Publish(
+	err = r.chManager.Channel.Publish(
 		r.config.ExchangeName,
 		event.Topic,
 		true,
@@ -32,7 +45,32 @@ func (r rabbitmqPublisher) Publish(ctx context.Context, event events.Event) erro
 		message,
 	)
 	if err != nil {
-		return err
+		// If the channel is closed, we need to reconnect and re-publish the event.
+		r.pausePublishMux.Lock()
+		r.pausePublish = true
+		r.pausePublishMux.Unlock()
+
+		r.unpublishedEvents <- event
 	}
-	return nil
+}
+
+// Check if the messages are being delivered
+func (r *rabbitmqPublisher) handleNotifyConfirm() {
+	err := r.chManager.Channel.Confirm(false)
+	if err != nil {
+		r.logger.Error().Err(err).Msg("failed to enable publisher confirmations")
+		return
+	}
+
+	notifyConfirmChan := r.chManager.Channel.NotifyPublish(
+		make(chan amqp.Confirmation),
+	)
+
+	for conf := range notifyConfirmChan {
+		if !conf.Ack {
+			r.logger.Error().Interface("confirmation", conf).Msg("failed to publish event")
+		}
+
+		r.wg.Done()
+	}
 }

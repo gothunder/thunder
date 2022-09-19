@@ -5,7 +5,7 @@ import (
 	"github.com/rotisserie/eris"
 )
 
-func (r rabbitmqConsumer) declare(routingKeys []string) error {
+func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 	r.chManager.ChannelMux.RLock()
 	defer r.chManager.ChannelMux.RUnlock()
 
@@ -25,7 +25,7 @@ func (r rabbitmqConsumer) declare(routingKeys []string) error {
 	}
 
 	err = r.chManager.Channel.Qos(
-		0, 0, false,
+		r.config.ConsumerConcurrency, 0, false,
 	)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func (r rabbitmqConsumer) declare(routingKeys []string) error {
 	return nil
 }
 
-func (r rabbitmqConsumer) queueDeclare() error {
+func (r *rabbitmqConsumer) queueDeclare() error {
 	_, err := r.chManager.Channel.QueueDeclare(
 		r.config.QueueName,
 		true,
@@ -52,7 +52,7 @@ func (r rabbitmqConsumer) queueDeclare() error {
 	return nil
 }
 
-func (r rabbitmqConsumer) exchangeDeclare() error {
+func (r *rabbitmqConsumer) exchangeDeclare() error {
 	err := r.chManager.Channel.ExchangeDeclare(
 		r.config.ExchangeName,
 		"topic",
@@ -69,7 +69,7 @@ func (r rabbitmqConsumer) exchangeDeclare() error {
 	return nil
 }
 
-func (r rabbitmqConsumer) queueBindDeclare(routingKeys []string) error {
+func (r *rabbitmqConsumer) queueBindDeclare(routingKeys []string) error {
 	for _, routingKey := range routingKeys {
 		err := r.chManager.Channel.QueueBind(
 			r.config.QueueName,

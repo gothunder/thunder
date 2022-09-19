@@ -1,18 +1,17 @@
 package consumer
 
 import (
+	"context"
+
 	"github.com/gothunder/thunder/pkg/events"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func sampleHandler(msg amqp.Delivery) events.HandlerResponse {
-	return events.Success
-}
-
-func (r rabbitmqConsumer) handler(msgs <-chan amqp.Delivery) {
+func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.HandlerFunc) {
 	for msg := range msgs {
-		r.wg.Add(1)
-		res := sampleHandler(msg)
+		ctx := r.logger.WithContext(context.Background())
+
+		res := handler(ctx, msg.RoutingKey, msg.Body)
 
 		switch res {
 		case events.Success:
@@ -34,7 +33,5 @@ func (r rabbitmqConsumer) handler(msgs <-chan amqp.Delivery) {
 				r.logger.Error().Err(err).Msg("failed to discard message")
 			}
 		}
-
-		r.wg.Done()
 	}
 }
