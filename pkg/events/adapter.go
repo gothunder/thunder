@@ -9,16 +9,16 @@ type EventConsumer interface {
 		handler HandlerFunc,
 	) error
 
-	Close() error
+	Close(context.Context) error
 }
 
 type EventPublisher interface {
-	StartPublisher() error
+	StartPublisher(context.Context) error
 
 	Publish(
 		context.Context,
 		Event,
 	)
 
-	Close() error
+	Close(context.Context) error
 }

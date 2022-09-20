@@ -1,7 +1,9 @@
 package consumer
 
+import "context"
+
 // Graceful shutdown of the consumer.
-func (r *rabbitmqConsumer) Close() error {
+func (r *rabbitmqConsumer) Close(ctx context.Context) error {
 	r.logger.Info().Msg("closing consumer")
 
 	// First we stop sending new messages to the consumer
