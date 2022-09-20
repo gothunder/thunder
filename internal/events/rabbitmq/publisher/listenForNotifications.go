@@ -5,10 +5,6 @@ import (
 )
 
 func (r *rabbitmqPublisher) listenForNotifications() {
-	r.pausePublishMux.Lock()
-	r.pausePublish = false
-	r.pausePublishMux.Unlock()
-
 	go r.handleNotifyFlow()
 	go r.handleNotifyBlocked()
 	go r.handleNotifyReturn()

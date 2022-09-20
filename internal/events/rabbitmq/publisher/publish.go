@@ -66,6 +66,10 @@ func (r *rabbitmqPublisher) handleNotifyConfirm() {
 		make(chan amqp.Confirmation),
 	)
 
+	r.pausePublishMux.Lock()
+	r.pausePublish = false
+	r.pausePublishMux.Unlock()
+
 	for conf := range notifyConfirmChan {
 		if !conf.Ack {
 			r.logger.Error().Interface("confirmation", conf).Msg("failed to publish event")
