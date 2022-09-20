@@ -19,7 +19,7 @@ type rabbitmqPublisher struct {
 	chManager *manager.ChannelManager
 
 	// Channel for publishing events
-	unpublishedEvents chan events.Event
+	unpublishedMessages chan message
 
 	// Wait group used to wait for all the publishes to finish
 	wg *sync.WaitGroup
@@ -47,8 +47,8 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 
 		chManager: chManager,
 
-		unpublishedEvents: make(chan events.Event),
-		wg:                &sync.WaitGroup{},
+		unpublishedMessages: make(chan message),
+		wg:                  &sync.WaitGroup{},
 
 		pausePublish:    true,
 		pausePublishMux: &sync.RWMutex{},

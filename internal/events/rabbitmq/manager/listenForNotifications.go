@@ -15,6 +15,8 @@ func (chManager *ChannelManager) listenForNotifications() {
 		make(chan string, 1),
 	)
 
+	// We have to listen to both channels to make sure that we exit
+	// when either notification is received
 	select {
 	case err := <-notifyCloseChan:
 		if err != nil {

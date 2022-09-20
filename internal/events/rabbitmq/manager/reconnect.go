@@ -10,13 +10,14 @@ import (
 // Try to reconnect to amqp, if we fail to reconnect, then we will wait and try again
 func (chManager *ChannelManager) reconnect() error {
 	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = 15 * time.Minute
 
 	// We'll keep retrying until we get a successful connection
 	for {
 		// We want to increase the wait time each time we fail to reconnect
 		interval := exponentialBackOff.NextBackOff()
 
-		// After some time we want to give up and return an error
+		// After the max elapsed time, we will stop trying to reconnect
 		if interval == exponentialBackOff.Stop {
 			return eris.New("failed to reconnect to amqp")
 		}

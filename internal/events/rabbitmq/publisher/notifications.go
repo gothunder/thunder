@@ -7,8 +7,6 @@ import (
 func (r *rabbitmqPublisher) listenForNotifications() {
 	go r.handleNotifyFlow()
 	go r.handleNotifyBlocked()
-	go r.handleNotifyReturn()
-	go r.handleNotifyConfirm()
 }
 
 // If the publisher sends more messages than the queue can handle, the rabbitmq server will start throttling the publisher.
@@ -43,16 +41,5 @@ func (r *rabbitmqPublisher) handleNotifyBlocked() {
 			r.logger.Warn().Msg("resuming publishing due to TCP unblocking from server")
 		}
 		r.pausePublishMux.Unlock()
-	}
-}
-
-// Check if a message was returned (failed to be published)
-func (r *rabbitmqPublisher) handleNotifyReturn() {
-	notifyReturnChan := r.chManager.Channel.NotifyReturn(
-		make(chan amqp.Return),
-	)
-
-	for ret := range notifyReturnChan {
-		r.logger.Error().Interface("return", ret).Msg("failed to publish event")
 	}
 }
