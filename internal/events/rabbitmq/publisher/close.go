@@ -1,7 +1,9 @@
 package publisher
 
+import "context"
+
 // Graceful shutdown of the publisher.
-func (r *rabbitmqPublisher) Close() error {
+func (r *rabbitmqPublisher) Close(ctx context.Context) error {
 	r.logger.Info().Msg("closing publisher")
 
 	// Wait till all events are published.

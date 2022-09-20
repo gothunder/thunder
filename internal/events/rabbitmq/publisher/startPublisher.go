@@ -1,18 +1,11 @@
 package publisher
 
-import "github.com/rotisserie/eris"
+import "context"
 
-func (r *rabbitmqPublisher) StartPublisher() error {
-	go r.proccess()
-
+func (r *rabbitmqPublisher) StartPublisher(ctx context.Context) error {
 	for {
 		r.listenForNotifications()
-
-		// Check if the channel reconnects
-		err := <-r.chManager.NotifyReconnection
-		if err != nil {
-			return eris.Wrap(err, "failed to reconnect to the amqp channel")
-		}
+		r.proccess()
 
 		r.logger.Info().Msg("restarting publisher after reconnection")
 	}
