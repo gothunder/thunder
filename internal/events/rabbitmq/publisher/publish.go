@@ -6,43 +6,61 @@ import (
 
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/rabbitmq/amqp091-go"
-	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/rotisserie/eris"
+	"github.com/rs/zerolog/log"
 )
 
-func (r *rabbitmqPublisher) Publish(ctx context.Context, event events.Event) {
-	r.wg.Add(1)
-	r.unpublishedEvents <- event
+type message struct {
+	Context context.Context
+	Topic   string
+	Message amqp091.Publishing
 }
 
-func (r *rabbitmqPublisher) publishEvent(event events.Event) {
+// Publish publishes a message to the given topic
+// The message is published asynchronously
+// The message will be republished if the connection is lost
+func (r *rabbitmqPublisher) Publish(ctx context.Context, event events.Event) error {
+	// We want to keep track of the messages being published
+	r.wg.Add(1)
+
+	body, err := json.Marshal(event.Payload)
+	if err != nil {
+		r.wg.Done()
+		return eris.Wrap(err, "failed to encode event")
+	}
+
+	// Queue the message to be published
+	r.unpublishedMessages <- message{
+		Context: ctx,
+		Topic:   event.Topic,
+		Message: amqp091.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp091.Persistent,
+			Body:         body,
+		},
+	}
+
+	return nil
+}
+
+func (r *rabbitmqPublisher) publishMessage(msg message) {
+	// Check if the publisher is paused
 	r.pausePublishMux.RLock()
 	if r.pausePublish {
-		r.unpublishedEvents <- event
 		r.pausePublishMux.RUnlock()
+		r.unpublishedMessages <- msg
 		return
 	}
 	r.pausePublishMux.RUnlock()
 
-	body, err := json.Marshal(event.Payload)
-	if err != nil {
-		r.logger.Error().Interface("event", event).Err(err).Msg("failed to encode event")
-		r.wg.Done()
-		return
-	}
-
-	message := amqp091.Publishing{
-		ContentType:  "application/json",
-		DeliveryMode: amqp091.Persistent,
-		Body:         body,
-	}
-
 	// Actual publish.
-	err = r.chManager.Channel.Publish(
+	deferredConfirmation, err := r.chManager.Channel.PublishWithDeferredConfirmWithContext(
+		msg.Context,
 		r.config.ExchangeName,
-		event.Topic,
+		msg.Topic,
 		true,
 		false,
-		message,
+		msg.Message,
 	)
 	if err != nil {
 		// If the channel is closed, we need to reconnect and re-publish the event.
@@ -50,31 +68,18 @@ func (r *rabbitmqPublisher) publishEvent(event events.Event) {
 		r.pausePublish = true
 		r.pausePublishMux.Unlock()
 
-		r.unpublishedEvents <- event
-	}
-}
-
-// Check if the messages are being delivered
-func (r *rabbitmqPublisher) handleNotifyConfirm() {
-	err := r.chManager.Channel.Confirm(false)
-	if err != nil {
-		r.logger.Error().Err(err).Msg("failed to enable publisher confirmations")
+		r.unpublishedMessages <- msg
 		return
 	}
 
-	notifyConfirmChan := r.chManager.Channel.NotifyPublish(
-		make(chan amqp.Confirmation),
-	)
-
-	r.pausePublishMux.Lock()
-	r.pausePublish = false
-	r.pausePublishMux.Unlock()
-
-	for conf := range notifyConfirmChan {
-		if !conf.Ack {
-			r.logger.Error().Interface("confirmation", conf).Msg("failed to publish event")
-		}
-
-		r.wg.Done()
+	// Wait for confirmation.
+	confirmed := deferredConfirmation.Wait()
+	if !confirmed {
+		// If we didn't get confirmation, we need to re-publish the event.
+		r.unpublishedMessages <- msg
+		return
 	}
+
+	log.Ctx(msg.Context).Info().Str("topic", msg.Topic).Msg("message published")
+	r.wg.Done()
 }

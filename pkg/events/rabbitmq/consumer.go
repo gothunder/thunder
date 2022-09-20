@@ -15,7 +15,7 @@ func NewRabbitMQConsumer(logger *zerolog.Logger) (events.EventConsumer, error) {
 }
 
 func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
-	fn := func(lc fx.Lifecycle, logger *zerolog.Logger) {
+	fn := func(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger) {
 		consumer, err := NewRabbitMQConsumer(logger)
 		if err != nil {
 			// TODO shutdown
@@ -29,8 +29,11 @@ func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
 					go func() {
 						err := consumer.Subscribe(ctx, topics, handler)
 						if err != nil {
-							// TODO shutdown
 							logger.Err(err).Msg("failed to subscribe to topics")
+							err = s.Shutdown()
+							if err != nil {
+								logger.Err(err).Msg("failed to shutdown")
+							}
 						}
 					}()
 
@@ -55,6 +58,12 @@ func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
 	return fn
 }
 
+// A module that provides a RabbitMQ consumer.
+// The consumer will be automatically started and stopped gracefully.
+// The consumer will subscribe to the provided topics.
+// The handler will be called when a message is received.
+// The handler will be called concurrently
+// The application will shutdown if the consumer fails to start or reconnect.
 func InvokeConsumer(topics []string, handler events.HandlerFunc) fx.Option {
 	return fx.Invoke(registerConsumer(topics, handler))
 }

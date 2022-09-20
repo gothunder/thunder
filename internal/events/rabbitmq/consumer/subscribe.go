@@ -13,6 +13,7 @@ func (r *rabbitmqConsumer) Subscribe(
 	handler events.HandlerFunc,
 ) error {
 	for {
+		// Start the go routines that will consume messages
 		err := r.startGoRoutines(topics, handler)
 		if err != nil {
 			return eris.Wrap(err, "failed to start go routines")
@@ -29,6 +30,7 @@ func (r *rabbitmqConsumer) Subscribe(
 }
 
 func (r *rabbitmqConsumer) startGoRoutines(topics []string, handler events.HandlerFunc) error {
+	// Declare exchange, queues, and bind them together
 	err := r.declare(topics)
 	if err != nil {
 		return err
@@ -47,11 +49,12 @@ func (r *rabbitmqConsumer) startGoRoutines(topics []string, handler events.Handl
 		return eris.Wrap(err, "failed to consume messages")
 	}
 
+	// We'll keep track of the go routines that we start
 	r.wg.Add(r.config.ConsumerConcurrency)
 	for i := 0; i < r.config.ConsumerConcurrency; i++ {
 		go func() {
-			// The msg channel will be closed when the amqp channel is closed
 			r.handler(msgs, handler)
+			// The handler will return when the channel is closed
 			r.wg.Done()
 		}()
 	}

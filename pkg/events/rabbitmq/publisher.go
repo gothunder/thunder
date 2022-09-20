@@ -24,15 +24,18 @@ func provideRabbitMQPublisher(logger *zerolog.Logger) events.EventPublisher {
 	return publisher
 }
 
-func startPublisher(lc fx.Lifecycle, logger *zerolog.Logger, publisher events.EventPublisher) {
+func startPublisher(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, publisher events.EventPublisher) {
 	lc.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				go func() {
 					err := publisher.StartPublisher(ctx)
 					if err != nil {
-						// TODO shutdown
 						logger.Err(err).Msg("failed to start publisher")
+						err = s.Shutdown()
+						if err != nil {
+							logger.Err(err).Msg("failed to shutdown")
+						}
 					}
 				}()
 
@@ -54,6 +57,10 @@ func startPublisher(lc fx.Lifecycle, logger *zerolog.Logger, publisher events.Ev
 	)
 }
 
+// A module that provides a RabbitMQ publisher.
+// The publisher will be provided to the application.
+// The publisher is automatically started and stopped gracefully.
+// The application will shutdown if the publisher fails to start or reconnect.
 var PublisherModule = fx.Options(
 	fx.Provide(provideRabbitMQPublisher),
 	fx.Invoke(startPublisher),
