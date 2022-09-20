@@ -50,7 +50,7 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 		unpublishedEvents: make(chan events.Event),
 		wg:                &sync.WaitGroup{},
 
-		pausePublish:    false,
+		pausePublish:    true,
 		pausePublishMux: &sync.RWMutex{},
 
 		notifyReturnChan:  make(chan amqp.Return),
