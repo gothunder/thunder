@@ -27,6 +27,7 @@ func NewChannelManager(url string, conf amqp.Config, log *zerolog.Logger) (*Chan
 	if err != nil {
 		return nil, eris.Wrap(err, "getting the first channel")
 	}
+	log.Info().Msg("amqp channel connected")
 
 	chManager := ChannelManager{
 		// Pass the arguments

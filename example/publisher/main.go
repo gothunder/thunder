@@ -23,7 +23,7 @@ func main() {
 	)
 	go app.Run()
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 20; i++ {
 		publisher.Publish(context.Background(), events.Event{
 			Topic:   "topic.test",
 			Payload: testEvent{Hello: fmt.Sprintf("world, %d", i)},
