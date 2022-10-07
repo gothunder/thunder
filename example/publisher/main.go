@@ -24,23 +24,19 @@ func main() {
 		log.Module,
 		rabbitmq.PublisherModule,
 	)
-	go app.Run()
-
-	ctx := logger.WithContext(context.Background())
-	for i := 0; i < 20; i++ {
-		err := publisher.Publish(ctx, events.Event{
-			Topic:   "topic.test",
-			Payload: testEvent{Hello: fmt.Sprintf("world, %d", i)},
-		})
-		if err != nil {
-			panic(err)
+	go func() {
+		time.Sleep(5 * time.Second)
+		ctx := logger.WithContext(context.Background())
+		for i := 0; i < 1000; i++ {
+			err := publisher.Publish(ctx, events.Event{
+				Topic:   "topic.test",
+				Payload: testEvent{Hello: fmt.Sprintf("world, %d", i)},
+			})
+			if err != nil {
+				panic(err)
+			}
 		}
+	}()
 
-		time.Sleep(1 * time.Second)
-	}
-
-	err := app.Stop(ctx)
-	if err != nil {
-		panic(err)
-	}
+	app.Run()
 }

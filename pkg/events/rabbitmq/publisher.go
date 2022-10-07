@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"time"
 
 	"github.com/gothunder/thunder/internal/events/rabbitmq/publisher"
 	"github.com/gothunder/thunder/pkg/events"
@@ -44,7 +45,11 @@ func startPublisher(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, pu
 			OnStop: func(ctx context.Context) error {
 				logger.Info().Msg("stopping publisher")
 
+				// Create a new context with a timeout of 5 seconds
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+
 				err := publisher.Close(ctx)
+				cancel()
 				if err != nil {
 					logger.Err(err).Msg("error closing publisher")
 					return err

@@ -33,7 +33,7 @@ func (r *rabbitmqPublisher) proccessingLoop() error {
 			}
 			return nil
 		case msg := <-r.unpublishedMessages:
-			go r.publishMessage(msg)
+			go r.publisherFunc(msg)
 		}
 	}
 }

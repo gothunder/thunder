@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/gothunder/thunder/pkg/events/rabbitmq"
@@ -18,17 +16,11 @@ type testEvent struct {
 
 func main() {
 	handler := func(ctx context.Context, topic string, payload []byte) events.HandlerResponse {
-		fmt.Printf("Received event: %s \n", topic)
-
 		event := testEvent{}
 		err := json.Unmarshal(payload, &event)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Payload: %v \n", event)
-
-		time.Sleep(200 * time.Millisecond)
-		fmt.Println("Done")
 
 		return events.Success
 	}

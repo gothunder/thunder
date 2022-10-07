@@ -21,6 +21,9 @@ type rabbitmqPublisher struct {
 	// Channel for publishing events
 	unpublishedMessages chan message
 
+	// Function that publishes the message
+	publisherFunc func(message)
+
 	// Wait group used to wait for all the publishes to finish
 	wg *sync.WaitGroup
 
@@ -56,6 +59,7 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 		notifyReturnChan:  make(chan amqp.Return),
 		notifyPublishChan: make(chan amqp.Confirmation),
 	}
+	publisher.publisherFunc = publisher.publishMessage
 
 	return &publisher, nil
 }

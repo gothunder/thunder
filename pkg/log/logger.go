@@ -26,6 +26,10 @@ func diodeShutdown(d diode.Writer, lc fx.Lifecycle) {
 	lc.Append(
 		fx.Hook{
 			OnStop: func(ctx context.Context) error {
+				// Wait till the rest of the app has stopped or timed out
+				<-ctx.Done()
+
+				// Flush the diode
 				err := d.Close()
 				if err != nil {
 					return eris.Wrap(err, "failed to close diode")
