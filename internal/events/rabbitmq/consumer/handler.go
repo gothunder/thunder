@@ -9,8 +9,11 @@ import (
 
 func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.HandlerFunc) {
 	for msg := range msgs {
-		ctx := r.logger.WithContext(context.Background())
+		logger := r.logger.With().
+			Str("topic", msg.RoutingKey).Logger()
+		ctx := logger.WithContext(context.Background())
 
+		logger.Info().Msg("consuming message")
 		res := handler(ctx, msg.RoutingKey, msg.Body)
 
 		switch res {
@@ -18,19 +21,19 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			// Message was successfully processed
 			err := msg.Ack(false)
 			if err != nil {
-				r.logger.Error().Err(err).Msg("failed to ack message")
+				logger.Error().Err(err).Msg("failed to ack message")
 			}
 		case events.Requeue:
 			// We should retry to process the message on a different worker
 			err := msg.Nack(false, true)
 			if err != nil {
-				r.logger.Error().Err(err).Msg("failed to requeue message")
+				logger.Error().Err(err).Msg("failed to requeue message")
 			}
 		default:
 			// We should stop processing the message
 			err := msg.Nack(false, false)
 			if err != nil {
-				r.logger.Error().Err(err).Msg("failed to discard message")
+				logger.Error().Err(err).Msg("failed to discard message")
 			}
 		}
 	}
