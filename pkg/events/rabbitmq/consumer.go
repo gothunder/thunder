@@ -18,9 +18,11 @@ func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
 	fn := func(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger) {
 		consumer, err := NewRabbitMQConsumer(logger)
 		if err != nil {
-			// TODO shutdown
 			logger.Err(err).Msg("failed to create consumer")
-			panic(err)
+			err = s.Shutdown()
+			if err != nil {
+				logger.Err(err).Msg("failed to shutdown")
+			}
 		}
 
 		lc.Append(
