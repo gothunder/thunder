@@ -1,15 +1,12 @@
 package log
 
 import (
-	"context"
 	"fmt"
 	"os"
 
 	internalLog "github.com/gothunder/thunder/internal/log"
-	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
-	"go.uber.org/fx"
 )
 
 func NewLogger(output diode.Writer) *zerolog.Logger {
@@ -22,21 +19,6 @@ func NewDiode() diode.Writer {
 	})
 }
 
-func diodeShutdown(d diode.Writer, lc fx.Lifecycle) {
-	lc.Append(
-		fx.Hook{
-			OnStop: func(ctx context.Context) error {
-				// Wait till the rest of the app has stopped or timed out
-				<-ctx.Done()
-
-				// Flush the diode
-				err := d.Close()
-				if err != nil {
-					return eris.Wrap(err, "failed to close diode")
-				}
-
-				return nil
-			},
-		},
-	)
+func DiodeShutdown(d diode.Writer) {
+	d.Close()
 }

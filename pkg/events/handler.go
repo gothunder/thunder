@@ -9,7 +9,7 @@ const (
 	Success HandlerResponse = iota
 
 	// The message will be delivered to a server configured dead-letter queue.
-	Requeue
+	DeadLetter
 
 	// Deliver this message to a different worker.
 	Retry
