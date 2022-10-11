@@ -7,6 +7,7 @@ import (
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/gothunder/thunder/pkg/events/rabbitmq"
 	"github.com/gothunder/thunder/pkg/log"
+	"github.com/rs/zerolog/diode"
 	"go.uber.org/fx"
 )
 
@@ -21,13 +22,19 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		if event.Hello == "world, 3" {
+			return events.DeadLetter
+		}
 
 		return events.Success
 	}
 
+	var w diode.Writer
 	app := fx.New(
+		fx.Populate(&w),
 		log.Module,
 		rabbitmq.InvokeConsumer([]string{"topic.test"}, handler),
 	)
 	app.Run()
+	log.DiodeShutdown(w)
 }

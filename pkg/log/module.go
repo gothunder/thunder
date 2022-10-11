@@ -10,7 +10,6 @@ import (
 var Module = fx.Options(
 	fx.Provide(NewDiode),
 	fx.Provide(NewLogger),
-	fx.Invoke(diodeShutdown),
 	fx.WithLogger(func(logger *zerolog.Logger) fxevent.Logger {
 		return &log.ZeroLogger{
 			Logger: logger,

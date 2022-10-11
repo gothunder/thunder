@@ -23,15 +23,15 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to ack message")
 			}
-		case events.Requeue:
+		case events.DeadLetter:
 			// We should retry to process the message on a different worker
-			err := msg.Nack(false, true)
+			err := msg.Nack(false, false)
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to requeue message")
 			}
 		default:
 			// We should stop processing the message
-			err := msg.Nack(false, false)
+			err := msg.Nack(false, true)
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to discard message")
 			}
