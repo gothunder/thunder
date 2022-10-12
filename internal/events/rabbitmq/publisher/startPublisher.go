@@ -8,14 +8,17 @@ import (
 
 func (r *rabbitmqPublisher) StartPublisher(ctx context.Context) error {
 	for {
-		r.chManager.Channel.Confirm(false)
+		err := r.chManager.Channel.Confirm(false)
+		if err != nil {
+			return eris.Wrap(err, "failed to enable publisher confirms")
+		}
 		r.listenForNotifications()
 
 		r.pausePublishMux.Lock()
 		r.pausePublish = false
 		r.pausePublishMux.Unlock()
 
-		err := r.proccessingLoop()
+		err = r.proccessingLoop()
 		if err != nil {
 			return err
 		}
@@ -33,7 +36,7 @@ func (r *rabbitmqPublisher) proccessingLoop() error {
 			}
 			return nil
 		case msg := <-r.unpublishedMessages:
-			go r.publisherFunc(msg)
+			r.publisherFunc(msg)
 		}
 	}
 }

@@ -14,8 +14,8 @@ func NewRabbitMQConsumer(logger *zerolog.Logger) (events.EventConsumer, error) {
 	return consumer.NewConsumer(amqp091.Config{}, logger)
 }
 
-func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
-	fn := func(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger) {
+func registerConsumer(topics []string) interface{} {
+	fn := func(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler) {
 		consumer, err := NewRabbitMQConsumer(logger)
 		if err != nil {
 			logger.Err(err).Msg("failed to create consumer")
@@ -29,7 +29,7 @@ func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
 			fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					go func() {
-						err := consumer.Subscribe(ctx, topics, handler)
+						err := consumer.Subscribe(ctx, topics, handler.Handle)
 						if err != nil {
 							logger.Err(err).Msg("failed to subscribe to topics")
 							err = s.Shutdown()
@@ -66,6 +66,6 @@ func registerConsumer(topics []string, handler events.HandlerFunc) interface{} {
 // The handler will be called when a message is received.
 // The handler will be called concurrently
 // The application will shutdown if the consumer fails to start or reconnect.
-func InvokeConsumer(topics []string, handler events.HandlerFunc) fx.Option {
-	return fx.Invoke(registerConsumer(topics, handler))
+func InvokeConsumer(topics []string) fx.Option {
+	return fx.Invoke(registerConsumer(topics))
 }

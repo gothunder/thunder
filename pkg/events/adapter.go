@@ -26,8 +26,11 @@ type EventPublisher interface {
 	// The message is published asynchronously
 	// The message will be republished if the connection is lost
 	Publish(
-		context.Context,
-		Event,
+		ctx context.Context,
+		// The name of the event.
+		topic string,
+		// The payload of the event.
+		payload interface{},
 	) error
 
 	// Close gracefully closes the publisher, making sure all messages are published

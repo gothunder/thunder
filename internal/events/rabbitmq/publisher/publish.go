@@ -3,8 +3,8 @@ package publisher
 import (
 	"context"
 	"encoding/json"
+	"time"
 
-	"github.com/gothunder/thunder/pkg/events"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
@@ -19,11 +19,11 @@ type message struct {
 // Publish publishes a message to the given topic
 // The message is published asynchronously
 // The message will be republished if the connection is lost
-func (r *rabbitmqPublisher) Publish(ctx context.Context, event events.Event) error {
+func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload interface{}) error {
 	// We want to keep track of the messages being published
 	r.wg.Add(1)
 
-	body, err := json.Marshal(event.Payload)
+	body, err := json.Marshal(payload)
 	if err != nil {
 		r.wg.Done()
 		return eris.Wrap(err, "failed to encode event")
@@ -32,7 +32,7 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, event events.Event) err
 	// Queue the message to be published
 	r.unpublishedMessages <- message{
 		Context: ctx,
-		Topic:   event.Topic,
+		Topic:   topic,
 		Message: amqp091.Publishing{
 			ContentType:  "application/json",
 			DeliveryMode: amqp091.Persistent,
@@ -53,9 +53,12 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	}
 	r.pausePublishMux.RUnlock()
 
+	// We'll timeout the publish after 5 seconds and consider as failed
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	// Actual publish.
 	deferredConfirmation, err := r.chManager.Channel.PublishWithDeferredConfirmWithContext(
-		msg.Context,
+		ctx,
 		r.config.ExchangeName,
 		msg.Topic,
 		true,
@@ -63,18 +66,24 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 		msg.Message,
 	)
 	if err != nil {
+		log.Ctx(msg.Context).Error().Err(err).Msg("failed to publish event, retrying")
+
 		// If the channel is closed, we need to reconnect and re-publish the event.
 		r.pausePublishMux.Lock()
 		r.pausePublish = true
 		r.pausePublishMux.Unlock()
 
 		r.unpublishedMessages <- msg
+		cancel()
 		return
 	}
 
 	// Wait for confirmation.
 	confirmed := deferredConfirmation.Wait()
+	cancel()
 	if !confirmed {
+		log.Ctx(msg.Context).Error().Msg("failed to confirm publish, retrying")
+
 		// If we didn't get confirmation, we need to re-publish the event.
 		r.unpublishedMessages <- msg
 		return
