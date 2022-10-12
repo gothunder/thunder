@@ -16,8 +16,6 @@ const (
 )
 
 // The function that will be called when a message is received.
-type HandlerFunc func(ctx context.Context, topic string, payload []byte) HandlerResponse
-
 type Handler interface {
 	Handle(ctx context.Context, topic string, payload []byte) HandlerResponse
 }

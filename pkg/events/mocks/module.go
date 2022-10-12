@@ -14,7 +14,7 @@ func createMockChannel() chan mocks.MockedEvent {
 	return make(chan mocks.MockedEvent)
 }
 
-func startConsumer(consumer events.EventConsumer, lc fx.Lifecycle, handler events.HandlerFunc) {
+func startConsumer(consumer events.EventConsumer, lc fx.Lifecycle, handler events.Handler) {
 	lc.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {

@@ -7,14 +7,14 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.HandlerFunc) {
+func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Handler) {
 	for msg := range msgs {
 		logger := r.logger.With().
 			Str("topic", msg.RoutingKey).Logger()
 		ctx := logger.WithContext(context.Background())
 
 		logger.Info().Msg("consuming message")
-		res := handler(ctx, msg.RoutingKey, msg.Body)
+		res := handler.Handle(ctx, msg.RoutingKey, msg.Body)
 
 		switch res {
 		case events.Success:

@@ -10,7 +10,7 @@ type EventConsumer interface {
 	Subscribe(
 		ctx context.Context,
 		topics []string,
-		handler HandlerFunc,
+		handler Handler,
 	) error
 
 	// Close gracefully closes the consumer, making sure all messages are processed

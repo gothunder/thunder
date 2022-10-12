@@ -9,10 +9,10 @@ import (
 func (m *mockedConsumer) Subscribe(
 	ctx context.Context,
 	topics []string,
-	handler events.HandlerFunc,
+	handler events.Handler,
 ) error {
 	for msg := range m.mockedChan {
-		handler(ctx, msg.Topic, msg.Payload)
+		handler.Handle(ctx, msg.Topic, msg.Payload)
 	}
 
 	return nil
