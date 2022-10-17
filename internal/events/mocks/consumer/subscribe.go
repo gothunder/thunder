@@ -12,7 +12,7 @@ func (m *mockedConsumer) Subscribe(
 	handler events.Handler,
 ) error {
 	for msg := range m.mockedChan {
-		handler.Handle(ctx, msg.Topic, msg.Payload)
+		go handler.Handle(ctx, msg.Topic, msg.Payload)
 	}
 
 	return nil
