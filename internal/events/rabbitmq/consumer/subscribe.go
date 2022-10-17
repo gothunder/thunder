@@ -10,7 +10,7 @@ import (
 func (r *rabbitmqConsumer) Subscribe(
 	ctx context.Context,
 	topics []string,
-	handler events.HandlerFunc,
+	handler events.Handler,
 ) error {
 	for {
 		// Start the go routines that will consume messages
@@ -29,7 +29,7 @@ func (r *rabbitmqConsumer) Subscribe(
 	}
 }
 
-func (r *rabbitmqConsumer) startGoRoutines(topics []string, handler events.HandlerFunc) error {
+func (r *rabbitmqConsumer) startGoRoutines(topics []string, handler events.Handler) error {
 	// Declare exchange, queues, and bind them together
 	err := r.declare(topics)
 	if err != nil {

@@ -29,7 +29,7 @@ func registerConsumer(topics []string) interface{} {
 			fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					go func() {
-						err := consumer.Subscribe(ctx, topics, handler.Handle)
+						err := consumer.Subscribe(ctx, topics, handler)
 						if err != nil {
 							logger.Err(err).Msg("failed to subscribe to topics")
 							err = s.Shutdown()
