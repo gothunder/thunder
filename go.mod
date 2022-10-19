@@ -6,7 +6,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/onsi/ginkgo/v2 v2.2.0
 	github.com/onsi/gomega v1.21.1
-	github.com/rabbitmq/amqp091-go v1.4.0
+	github.com/rabbitmq/amqp091-go v1.5.0
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.27.0
 	github.com/stretchr/testify v1.8.0
