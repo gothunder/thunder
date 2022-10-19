@@ -12,7 +12,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/vektra/mockery/v2 v2.14.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
-	go.uber.org/fx v1.18.1
+	go.uber.org/fx v1.18.2
 )
 
 require (
