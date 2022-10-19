@@ -21,6 +21,7 @@ func main() {
 	var publisher events.EventPublisher
 	var logger *zerolog.Logger
 	var w diode.Writer
+
 	app := fx.New(
 		fx.Populate(&publisher, &logger, &w),
 		log.Module,
@@ -30,16 +31,15 @@ func main() {
 		time.Sleep(5 * time.Second)
 		ctx := logger.WithContext(context.Background())
 		for i := 0; i < 10; i++ {
-			err := publisher.Publish(ctx, events.Event{
-				Topic:   "topic.test",
-				Payload: testEvent{Hello: fmt.Sprintf("world, %d", i)},
+			err := publisher.Publish(ctx, "topic.test", testEvent{
+				Hello: fmt.Sprintf("world, %d", i),
 			})
 			if err != nil {
 				panic(err)
 			}
 		}
 	}()
-
 	app.Run()
+
 	log.DiodeShutdown(w)
 }

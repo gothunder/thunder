@@ -11,6 +11,7 @@ require (
 	github.com/rs/zerolog v1.27.0
 	github.com/stretchr/testify v1.7.2
 	github.com/vektra/mockery/v2 v2.14.0
+	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/fx v1.18.1
 )
 
@@ -39,6 +40,7 @@ require (
 	github.com/spf13/viper v1.12.0 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/subosito/gotenv v1.4.0 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/dig v1.15.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

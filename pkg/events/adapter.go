@@ -9,7 +9,6 @@ type EventConsumer interface {
 	// Returns an error if the subscription fails to start or reconnect
 	Subscribe(
 		ctx context.Context,
-		topics []string,
 		handler Handler,
 	) error
 

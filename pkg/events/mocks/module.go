@@ -19,7 +19,7 @@ func startConsumer(consumer events.EventConsumer, lc fx.Lifecycle, handler event
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				go func() {
-					consumer.Subscribe(ctx, []string{"*"}, handler)
+					consumer.Subscribe(ctx, handler)
 				}()
 
 				return nil

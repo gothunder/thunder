@@ -15,7 +15,14 @@ const (
 	Retry
 )
 
+type EventDecoder interface {
+	// Decode decodes the payload into the given interface.
+	// Returns an error if the payload cannot be decoded.
+	Decode(v interface{}) error
+}
+
 // The function that will be called when a message is received.
 type Handler interface {
-	Handle(ctx context.Context, topic string, payload []byte) HandlerResponse
+	Handle(ctx context.Context, topic string, decoder EventDecoder) HandlerResponse
+	Topics() []string
 }

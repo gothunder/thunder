@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/gothunder/thunder/pkg/events/rabbitmq"
@@ -15,26 +14,44 @@ type testEvent struct {
 	Hello string `json:"hello"`
 }
 
-func main() {
-	handler := func(ctx context.Context, topic string, payload []byte) events.HandlerResponse {
-		event := testEvent{}
-		err := json.Unmarshal(payload, &event)
-		if err != nil {
-			panic(err)
-		}
-		if event.Hello == "world, 3" {
-			return events.DeadLetter
-		}
+type testHandler struct{}
 
-		return events.Success
+func newHandler() events.Handler {
+	return testHandler{}
+}
+
+func (t testHandler) Topics() []string {
+	return []string{
+		"topic.test",
+	}
+}
+
+func (t testHandler) Handle(ctx context.Context, topic string, decoder events.EventDecoder) events.HandlerResponse {
+	event := testEvent{}
+	err := decoder.Decode(&event)
+	if err != nil {
+		panic(err)
+	}
+	if event.Hello == "world, 3" {
+		return events.DeadLetter
 	}
 
+	return events.Success
+}
+
+func main() {
 	var w diode.Writer
 	app := fx.New(
 		fx.Populate(&w),
 		log.Module,
-		rabbitmq.InvokeConsumer([]string{"topic.test"}, handler),
+		fx.Provide(
+			func() events.Handler {
+				return newHandler()
+			},
+		),
+		rabbitmq.InvokeConsumer,
 	)
 	app.Run()
+
 	log.DiodeShutdown(w)
 }

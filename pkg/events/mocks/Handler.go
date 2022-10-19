@@ -14,15 +14,31 @@ type Handler struct {
 	mock.Mock
 }
 
-// Handle provides a mock function with given fields: ctx, topic, payload
-func (_m *Handler) Handle(ctx context.Context, topic string, payload []byte) events.HandlerResponse {
-	ret := _m.Called(ctx, topic, payload)
+// Handle provides a mock function with given fields: ctx, topic, decoder
+func (_m *Handler) Handle(ctx context.Context, topic string, decoder events.EventDecoder) events.HandlerResponse {
+	ret := _m.Called(ctx, topic, decoder)
 
 	var r0 events.HandlerResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, []byte) events.HandlerResponse); ok {
-		r0 = rf(ctx, topic, payload)
+	if rf, ok := ret.Get(0).(func(context.Context, string, events.EventDecoder) events.HandlerResponse); ok {
+		r0 = rf(ctx, topic, decoder)
 	} else {
 		r0 = ret.Get(0).(events.HandlerResponse)
+	}
+
+	return r0
+}
+
+// Topics provides a mock function with given fields:
+func (_m *Handler) Topics() []string {
+	ret := _m.Called()
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func() []string); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
 	}
 
 	return r0

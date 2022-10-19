@@ -24,7 +24,7 @@ var _ = Describe("Example", func() {
 
 		topic := "test12345"
 
-		handler.On("Execute",
+		handler.On("Handle",
 			mock.Anything,
 			topic,
 			mock.Anything,
@@ -39,11 +39,8 @@ var _ = Describe("Example", func() {
 			close(done)
 		})
 
-		publisher.Publish(context.Background(), events.Event{
-			Topic: topic,
-			Payload: testEvent{
-				Hello: "world",
-			},
+		publisher.Publish(context.Background(), topic, testEvent{
+			Hello: "world",
 		})
 
 		Eventually(done).Should(BeClosed())

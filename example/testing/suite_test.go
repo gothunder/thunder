@@ -14,7 +14,7 @@ import (
 	"go.uber.org/fx"
 )
 
-var handler *mocks.HandlerFunc
+var handler *mocks.Handler
 var publisher events.EventPublisher
 var app *fx.App
 var logger *zerolog.Logger
@@ -22,7 +22,7 @@ var logger *zerolog.Logger
 func TestCase(t *testing.T) {
 	os.Setenv("TZ", "UTC")
 
-	handler = mocks.NewHandlerFunc(t)
+	handler = mocks.NewHandler(t)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Payments Suite")
 }
@@ -31,8 +31,8 @@ var _ = BeforeSuite(func() {
 	app = fx.New(
 		fx.Populate(&publisher, &logger),
 		fx.Provide(
-			func() events.HandlerFunc {
-				return handler.Execute
+			func() events.Handler {
+				return handler
 			},
 		),
 		log.Module,
