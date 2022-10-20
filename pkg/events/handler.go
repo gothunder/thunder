@@ -21,8 +21,9 @@ type EventDecoder interface {
 	Decode(v interface{}) error
 }
 
-// The function that will be called when a message is received.
 type Handler interface {
+	// The function that will be called when a message is received.
 	Handle(ctx context.Context, topic string, decoder EventDecoder) HandlerResponse
+	// The topics that will be subscribed to.
 	Topics() []string
 }
