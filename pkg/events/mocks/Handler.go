@@ -4,6 +4,7 @@ import (
 	context "context"
 
 	events "github.com/gothunder/thunder/pkg/events"
+	. "github.com/onsi/ginkgo/v2"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -12,6 +13,8 @@ type Handler struct {
 }
 
 func (m *Handler) Handle(ctx context.Context, topic string, decoder events.EventDecoder) events.HandlerResponse {
+	defer GinkgoRecover()
+
 	args := m.Mock.Called(ctx, topic, decoder)
 
 	var resp events.HandlerResponse
