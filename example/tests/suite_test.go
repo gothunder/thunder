@@ -22,7 +22,6 @@ var logger *zerolog.Logger
 func TestCase(t *testing.T) {
 	os.Setenv("TZ", "UTC")
 
-	handler = mocks.NewHandler(t)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Payments Suite")
 }
@@ -32,6 +31,7 @@ var _ = BeforeSuite(func() {
 		fx.Populate(&publisher, &logger),
 		fx.Provide(
 			func() events.Handler {
+				handler = mocks.NewHandler()
 				return handler
 			},
 		),
@@ -44,4 +44,14 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	Expect(app.Stop(context.Background())).To(Succeed())
+})
+
+var _ = BeforeEach(func() {
+	t := GinkgoT()
+	handler.Mock.Test(t)
+
+	DeferCleanup(func() {
+		Expect(handler.Mock.AssertExpectations(t)).To(BeTrue())
+		handler.ResetMock()
+	})
 })

@@ -24,7 +24,7 @@ var _ = Describe("Example", func() {
 
 		topic := "test12345"
 
-		handler.On("Handle",
+		handler.Mock.On("Handle",
 			mock.Anything,
 			topic,
 			mock.Anything,
