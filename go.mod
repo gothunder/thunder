@@ -10,7 +10,7 @@ require (
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.1
-	github.com/vektra/mockery/v2 v2.14.1
+	github.com/vektra/mockery/v2 v2.15.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/fx v1.18.2
 )
