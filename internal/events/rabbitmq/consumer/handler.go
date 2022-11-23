@@ -20,10 +20,10 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 		ctx := logger.WithContext(context.Background())
 
 		var decoder events.EventDecoder
-		if msg.ContentType == "application/json" {
-			decoder = json.NewDecoder(bytes.NewReader(msg.Body))
-		} else if msg.ContentType == "application/msgpack" {
+		if msg.ContentType == "application/msgpack" {
 			decoder = msgpack.NewDecoder(bytes.NewReader(msg.Body))
+		} else {
+			decoder = json.NewDecoder(bytes.NewReader(msg.Body))
 		}
 
 		res := r.handleWithRecoverer(ctx, handler, msg.RoutingKey, decoder)
