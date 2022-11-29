@@ -3,29 +3,35 @@ module github.com/gothunder/thunder
 go 1.19
 
 require (
+	github.com/99designs/gqlgen v0.17.20
 	github.com/cenkalti/backoff/v4 v4.1.3
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/onsi/ginkgo/v2 v2.5.0
 	github.com/onsi/gomega v1.24.1
 	github.com/rabbitmq/amqp091-go v1.5.0
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.1
+	github.com/vektah/gqlparser/v2 v2.5.1
 	github.com/vektra/mockery/v2 v2.15.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/fx v1.18.2
 )
 
 require (
+	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

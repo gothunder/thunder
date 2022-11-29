@@ -17,10 +17,10 @@ func NewRabbitMQConsumer(logger *zerolog.Logger) (events.EventConsumer, error) {
 func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler) {
 	consumer, err := NewRabbitMQConsumer(logger)
 	if err != nil {
-		logger.Err(err).Msg("failed to create consumer")
+		logger.Error().Err(err).Msg("failed to create consumer")
 		err = s.Shutdown()
 		if err != nil {
-			logger.Err(err).Msg("failed to shutdown")
+			logger.Error().Err(err).Msg("failed to shutdown")
 		}
 	}
 
@@ -30,10 +30,10 @@ func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, 
 				go func() {
 					err := consumer.Subscribe(ctx, handler)
 					if err != nil {
-						logger.Err(err).Msg("failed to subscribe to topics")
+						logger.Error().Err(err).Msg("failed to subscribe to topics")
 						err = s.Shutdown()
 						if err != nil {
-							logger.Err(err).Msg("failed to shutdown")
+							logger.Error().Err(err).Msg("failed to shutdown")
 						}
 					}
 				}()
@@ -45,7 +45,7 @@ func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, 
 
 				err := consumer.Close(ctx)
 				if err != nil {
-					logger.Err(err).Msg("error closing consumer")
+					logger.Error().Err(err).Msg("error closing consumer")
 					return err
 				}
 
