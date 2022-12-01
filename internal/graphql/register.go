@@ -10,7 +10,7 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func createHandler(graphQLSchema graphql.ExecutableSchema) *handler.Server {
+func CreateHandler(graphQLSchema graphql.ExecutableSchema) *handler.Server {
 	// Create a new handler
 	graphqlHandler := handler.NewDefaultServer(graphQLSchema)
 

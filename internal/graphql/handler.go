@@ -14,7 +14,7 @@ type graphqlHandler struct {
 
 func NewGraphqlHandler(graphQLSchema graphql.ExecutableSchema) router.HTTPHandler {
 	return &graphqlHandler{
-		handler: createHandler(graphQLSchema),
+		handler: CreateHandler(graphQLSchema),
 	}
 }
 
