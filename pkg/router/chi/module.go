@@ -18,7 +18,7 @@ var Module = fx.Options(
 	),
 )
 
-func startListener(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, params router.Params, r *chi.Mux) {
+func StartListener(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, params router.Params, r *chi.Mux) {
 	server, listener, err := thunderChi.CreateServer(params.Handlers, logger, r)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create server")
@@ -62,7 +62,3 @@ func startListener(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, par
 		},
 	)
 }
-
-var StartServer = fx.Invoke(
-	startListener,
-)
