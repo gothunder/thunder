@@ -6,8 +6,8 @@ require (
 	github.com/99designs/gqlgen v0.17.24
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/go-chi/chi/v5 v5.0.8
-	github.com/onsi/ginkgo/v2 v2.5.0
-	github.com/onsi/gomega v1.24.1
+	github.com/onsi/ginkgo/v2 v2.8.0
+	github.com/onsi/gomega v1.25.0
 	github.com/rabbitmq/amqp091-go v1.7.0
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.29.0
