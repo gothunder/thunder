@@ -10,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const confirmTimeout = 5 * time.Second
+
 type message struct {
 	Context context.Context
 	Topic   string
@@ -44,17 +46,8 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 }
 
 func (r *rabbitmqPublisher) publishMessage(msg message) {
-	// Check if the publisher is paused
-	r.pausePublishMux.RLock()
-	if r.pausePublish {
-		r.pausePublishMux.RUnlock()
-		r.unpublishedMessages <- msg
-		return
-	}
-	r.pausePublishMux.RUnlock()
-
-	// We'll timeout the publish after 5 seconds and consider as failed
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// We'll timeout the publish after confirmTimeout seconds and consider as failed
+	ctx, cancel := context.WithTimeout(context.Background(), confirmTimeout)
 
 	// Actual publish.
 	deferredConfirmation, err := r.chManager.Channel.PublishWithDeferredConfirmWithContext(
@@ -68,17 +61,25 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	if err != nil {
 		log.Ctx(msg.Context).Error().Err(err).Msg("failed to publish event, retrying")
 
-		// If the channel is closed, we need to reconnect and re-publish the event.
+		// If we failed to publish, it means that the connection is down.
+		// So we can pause the publisher and re-publish the event.
+		// The publisher will be unpaused when the connection is re-established.
 		r.pausePublishMux.Lock()
 		r.pausePublish = true
 		r.pausePublishMux.Unlock()
 
+		// If the channel is empty, we can send a signal to pause the publisher
+		if len(r.pauseSignalChan) == 0 {
+			r.pauseSignalChan <- true
+		}
+
+		// Re-publish the event
 		r.unpublishedMessages <- msg
 		cancel()
 		return
 	}
 
-	// Wait for confirmation.
+	// Wait for confirmation. Timeouts after confirmTimeout seconds.
 	confirmed := deferredConfirmation.Wait()
 	cancel()
 	if !confirmed {
