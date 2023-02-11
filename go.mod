@@ -3,7 +3,7 @@ module github.com/gothunder/thunder
 go 1.19
 
 require (
-	github.com/99designs/gqlgen v0.17.20
+	github.com/99designs/gqlgen v0.17.24
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/onsi/ginkgo/v2 v2.5.0
