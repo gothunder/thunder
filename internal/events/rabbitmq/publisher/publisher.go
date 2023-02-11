@@ -56,7 +56,12 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 
 		pausePublish:    true,
 		pausePublishMux: &sync.RWMutex{},
-		pauseSignalChan: make(chan bool, 1),
+
+		// The buffer size of 100 is arbitrary
+		// It is used to prevent the pause signal from hanging
+		// Realistically, the pause signal should be processed immediately
+		// But sometimes, a race condition can occur specially when having high throughput
+		pauseSignalChan: make(chan bool, 100),
 
 		notifyReturnChan:  make(chan amqp.Return),
 		notifyPublishChan: make(chan amqp.Confirmation),
