@@ -30,6 +30,7 @@ type rabbitmqPublisher struct {
 	// These flags are used to prevent the publisher from publishing messages to the queue
 	pausePublish    bool
 	pausePublishMux *sync.RWMutex
+	pauseSignalChan chan bool
 
 	// These fields are used to keep track of the publisher's state
 	notifyReturnChan  chan amqp.Return
@@ -55,6 +56,12 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 
 		pausePublish:    true,
 		pausePublishMux: &sync.RWMutex{},
+
+		// The buffer size of 100 is arbitrary
+		// It is used to prevent the pause signal from hanging
+		// Realistically, the pause signal should be processed immediately
+		// But sometimes, a race condition can occur specially when having high throughput
+		pauseSignalChan: make(chan bool, 100),
 
 		notifyReturnChan:  make(chan amqp.Return),
 		notifyPublishChan: make(chan amqp.Confirmation),
