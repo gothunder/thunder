@@ -3,12 +3,12 @@
 ## Commands
 
 Action + Subject
-: e.g. `SendBnplStatusUpdateInProcessPartnerEmail`
+: e.g. `SendStudentGrades`
 
 ## Queries/Resolvers
 
-Action + Subject + Filter
-: e.g. `FindOneUsubscriber`
+Action + Quantity + Subject + Filter (optional)
+: e.g. `FindOneStudentById`, `FindManyStudents`
 
 ## Events
 
@@ -21,7 +21,7 @@ TODO
 ## GraphQL queries and resolvers
 
 Who + Action + Subject + `s` if plural
-: e.g. `PartnerListInvoiceTotals`, `SuperAdminListBNPLOffers`
+: e.g. `PrincipalListStudentsGrades`
 
 ## Controllers
 
@@ -29,8 +29,4 @@ TODO
 
 - Input:
 Action + Subject + Input
-: e.g. `ListRecurringPaymentsInput`
-
-## Repository
-
-TODO: Should it be `typeRepo` or `typerepo`?
+: e.g. `ListStudentsGradesInput`
