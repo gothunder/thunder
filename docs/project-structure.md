@@ -59,8 +59,16 @@ categories or transport modules should go.
 
 ### `internal/transport-inbound`
 
-Every communication that comes into your app, includes API routes, Graphql,
-controllers, event consumers, webhooks, etc.
+Every communication that comes into your app, includes API routes, GraphQL
+resolvers, event consumers, webhooks, etc.
+
+This directory may be further split into subdirectories based on the type of
+transport, that being:
+
+- `graphql` for GraphQL resolvers and schemas
+- `routes` for HTTP server handlers
+- `webhooks` for webhooks
+- `consumers` for event consumers
 
 ### `internal/transport-outbound`
 
