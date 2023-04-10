@@ -12,4 +12,6 @@ in the database and the time it's checked against the ban list.
 
 ## Setup
 
-TODO
+- Spin up a RabbitMQ container
+- cd into the `email` directory and run `go run main.go`
+- cd into the `ban` directory and run `go run main.go`
