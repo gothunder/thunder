@@ -1,12 +1,12 @@
-module github.com/gothunder/thunder/examples/ban
+module github.com/gothunder/thunder/example/ban
 
 go 1.19
 
-replace github.com/gothunder/thunder/examples/email => ../email
+replace github.com/gothunder/thunder/example/email => ../email
 
 require (
 	github.com/gothunder/thunder v0.5.1
-	github.com/gothunder/thunder/examples/email v0.0.0-20230102180253-e0b111ffa5c9
+	github.com/gothunder/thunder/example/email v0.0.0-20230102180253-e0b111ffa5c9
 	github.com/rs/zerolog v1.28.0
 	go.uber.org/fx v1.18.2
 )
