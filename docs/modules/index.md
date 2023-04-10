@@ -15,4 +15,4 @@ Here is the list of modules in this project:
 ## TODO
 
 - [ent](https://entgo.io/): ORM that can be integrated with GraphQL through
-  gqlgen.
+  `gqlgen`.
