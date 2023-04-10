@@ -8,7 +8,7 @@ Through the wrapper, you'll be able to configure the logging level via
 environment variables, as well as enable pretty console output while in
 development.
 
-Additionally, there's a dedicated marshaller for error stacktraces.
+Additionally, there's a dedicated marshaller for error stack traces.
 
 The logger is non-blocking, so you should make sure that all logs are flushed
 before the app is closed (an example of the complete setup is provided below).
