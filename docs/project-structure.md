@@ -29,8 +29,9 @@ All domain logic
 
 ### `internal/features/commands`
 
-Exposes methods that are used to change data in the database, you may also
-perform some validation and query existing data before making any changes.
+Exposes methods that are used to change data, send events, making requests,
+etc. You may also perform some validation and query existing data before making
+any actions. Think of this as a controller or service layer.
 
 It's strongly recommended to use database transactions for complex commands
 since you may want to roll back your data if there are any failures.
@@ -56,6 +57,18 @@ the database / ORM without the use of your repository.
 
 This is where the code for any other feature that does not fit into the above
 categories or transport modules should go.
+
+### Examples
+
+#### `internal/features/controller`
+
+Abstraction to use the same logic for resolvers, REST and consumers. Note that
+it may not be as useful since the logic may vary a lot between transports.
+
+#### `internal/features/domains`
+
+Internal feature to work with domains, including rules, parsers, etc. If used
+by other modules, it should be moved to `pkg`.
 
 ### `internal/transport-inbound`
 
