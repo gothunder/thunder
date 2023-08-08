@@ -41,6 +41,8 @@ github.com/99designs/gqlgen v0.17.24/go.mod h1:BMhYIhe4bp7OlCo5I2PnowSK/Wimpv/Yl
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.1.0/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
+github.com/TheRafaBonin/roxy v0.6.1 h1:uW7ttgqtww4ipH82smosk6SZDz3GjJM5mC/GRWsi+2Q=
+github.com/TheRafaBonin/roxy v0.6.1/go.mod h1:wLE6Upm7KEkwpYA6LzPBMHlyXSXiMe/fWwHi/+5Fk1w=
 github.com/agnivade/levenshtein v1.0.1/go.mod h1:CURSv5d9Uaml+FovSIICkLbAUZ9S4RqaHDIsdSBg7lM=
 github.com/agnivade/levenshtein v1.1.1 h1:QY8M92nrzkmr798gCo3kmMyqXFzdQVpxLlGPRBij0P8=
 github.com/agnivade/levenshtein v1.1.1/go.mod h1:veldBMzWxcCG2ZvUTKD2kJNRdCk5hVbJomOvKkmgYbo=

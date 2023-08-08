@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/99designs/gqlgen v0.17.24
+	github.com/TheRafaBonin/roxy v0.6.1
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/onsi/ginkgo/v2 v2.8.0
