@@ -11,6 +11,7 @@ Here is the list of modules in this project:
          receive intercepted messages.
 - [rabbitmq](./events.md): Provides RabbitMQ publisher and consumer with
             [amqp]("https://github.com/rabbitmq/amqp091-go").
+- [gRPC](./grpc.md): Provides a gRPC server and client.
 
 ## TODO
 

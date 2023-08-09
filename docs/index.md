@@ -25,6 +25,7 @@ services at [Alternative Payments](https://www.alternativepayments.io/).
 ## Next
 
 - [Getting started](./getting-started.md): how to use thunder right away.
+- [Modules](./modules/index.md): list of available modules.
 - [Cookbook](./cookbook.md): common use cases.
 - [Conventions](./conventions.md): how to use thunder in your project.
 - [Project structure](./project-structure.md): how to structure a thunder
