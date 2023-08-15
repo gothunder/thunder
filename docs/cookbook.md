@@ -9,15 +9,186 @@
   file.
 - Run `make generate` to generate the resolver file in
   `/internal/transport-inbound/graphql/resolvers/<name>.resolvers.go`.
-- Write the code for the resolver in the generated file. Usually, this calls
-  `commands` and `queries` modules in the `/internal/features`.
+- Write the code for the resolver in the generated file. Usually, this uses
+  `commands` and `queries` modules from `/internal/features`.
 
 ### Loaders
 
-- Define the loader in `/internal/features/graphql/loaders/`.
-- (Optional) Add the loader to the `Loaders` struct in
-  `/internal/features/graphql/loaders/loaders.go`.
-- Use the loader in `/internal/features/graphql/resolvers/entity.resolvers.go`.
+```go
+// package/internal/features/loaders/module.go
+
+package loaders
+
+import "go.uber.org/fx"
+
+var Module = fx.Provide(
+	newLoader,
+)
+```
+
+```go
+// package/internal/features/loaders/loaders.go
+
+package loaders
+
+import (
+	"github.com/example/package/internal/generated/ent"
+	"github.com/graph-gophers/dataloader"
+)
+
+type Loader struct {
+    ...
+	FindEntityByIDLoader *dataloader.Loader
+	...
+}
+
+func newLoader(repo *ent.Client) *Loader {
+	FindEntityByIDLoader := dataloader.NewBatchedLoader(
+		findEntityByIDBatch(repo),
+		dataloader.WithClearCacheOnBatch(),
+	)
+
+	return &Loader{
+		...
+		FindEntityByIDLoader: FindEntityByIDLoader,
+		...
+	}
+}
+```
+
+```go
+// package/internal/features/loaders/findEntityByID.go
+
+package loaders
+
+import (
+	"context"
+
+	"github.com/TheRafaBonin/roxy"
+
+	"github.com/example/package/internal/generated/ent"
+	"github.com/example/package/internal/generated/ent/entity"
+
+	"github.com/google/uuid"
+
+	"github.com/graph-gophers/dataloader"
+)
+
+func findEntityByIDBatch(repo *ent.Client) dataloader.BatchFunc {
+	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
+		// Declares some variables
+		var entityMap = make(map[string]*ent.Entity)
+		var errorsMap = make(map[string]error)
+
+		var results []*dataloader.Result
+		var entityIDs []uuid.UUID
+
+		// Convert keys
+		for _, key := range keys.Keys() {
+			uid, err := uuid.Parse(key)
+			if err != nil {
+				errorsMap[key] = roxy.Wrap(err, "parsing uuids")
+				continue
+			}
+
+			entityIDs = append(entityIDs, uid)
+		}
+
+		// Finds entities and maps
+		entities, err := repo.Entity.Query().
+			Where(entity.IDIn(entityIDs...)).
+			All(ctx)
+		if err != nil {
+			return findEntityByIDBatchErrorResults(keys, roxy.Wrap(err, "finding entities"))
+		}
+		for _, entity := range entities {
+			entityMap[entity.ID.String()] = entity
+		}
+
+		// Map the results
+		for _, key := range keys.Keys() {
+			err = errorsMap[key]
+			if err != nil {
+				results = append(results, &dataloader.Result{
+					Data:  nil,
+					Error: err,
+				})
+				continue
+			}
+
+			p := entityMap[key]
+			results = append(results, &dataloader.Result{
+				Data: p,
+			})
+		}
+		return results
+	}
+	return batchFn
+}
+
+func findEntityByIDBatchErrorResults(keys dataloader.Keys, err error) []*dataloader.Result {
+	var results []*dataloader.Result
+	for range keys.Keys() {
+		results = append(results, &dataloader.Result{
+			Data:  nil,
+			Error: err,
+		})
+	}
+
+	return results
+}
+```
+
+```go
+// package/internal/features/graphql/resolvers/module.go
+package resolvers
+
+import (
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/example/package/internal/features/loaders"
+	"go.uber.org/fx"
+
+	generatedGraphql "github.com/example/package/internal/generated/graphql"
+)
+
+func newSchema(..., loaders *loaders.Loader, ...) graphql.ExecutableSchema {
+	resolver := &Resolver{
+		...
+        loaders:  loaders,
+		...
+	}
+
+	graphqlConfig := generatedGraphql.Config{Resolvers: resolver}
+	return generatedGraphql.NewExecutableSchema(graphqlConfig)
+}
+
+var Module = fx.Options(
+	fx.Provide(
+		newSchema,
+	),
+)
+```
+
+```go
+// package/internal/features/graphql/resolvers/resolvers.go
+package resolvers
+
+import (
+	"github.com/example/package/internal/features/loaders"
+
+	generatedGraphql "github.com/example/package/internal/generated/graphql"
+)
+
+...
+
+type Resolver struct {
+	...
+    loaders  *loaders.Loader
+	...
+}
+
+...
+```
 
 ## Repository Pattern
 
