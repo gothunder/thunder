@@ -190,6 +190,43 @@ type Resolver struct {
 ...
 ```
 
+```go
+// package/internal/features/graphql/resolvers/entity.resolvers.go
+
+package resolvers
+
+import (
+	"context"
+
+	"github.com/example/package/internal/generated/ent"
+	"github.com/example/package/internal/generated/graphql"
+	"github.com/example/package/internal/transport-inbound/graphql/resolvers/formatters"
+	"github.com/graph-gophers/dataloader"
+	"github.com/rotisserie/eris"
+)
+
+func (r *entityResolver) FindEntityByID(ctx context.Context, id string) (*graphql.Entity, error) {
+	thunk := r.loaders.FindEntityByIDLoader.Load(ctx, dataloader.StringKey(id))
+	loadedEntity, err := thunk()
+	err = eris.Wrap(err, "loaders.FindEntityByIDLoader")
+
+	if err != nil {
+		return nil, err
+	}
+
+	entity := loadedEntity.(*ent.Entity)
+	if entity == nil {
+		return nil, err
+	}
+
+	return formatters.FormatEntity(entity), nil
+}
+
+func (r *Resolver) Entity() graphql.EntityResolver { return &entityResolver{r} }
+
+type entityResolver struct{ *Resolver }
+```
+
 ## Repository Pattern
 
 ### ent
