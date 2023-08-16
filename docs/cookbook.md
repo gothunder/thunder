@@ -231,7 +231,46 @@ type entityResolver struct{ *Resolver }
 
 ### ent
 
-TODO
+```go
+// package/cmd/entc.go
+
+//go:build exclude
+
+package main
+
+import (
+	"log"
+
+	"entgo.io/contrib/entgql"
+	"entgo.io/ent/entc"
+	"entgo.io/ent/entc/gen"
+)
+
+func main() {
+	ex, err := entgql.NewExtension()
+	if err != nil {
+		log.Fatalf("creating entgql extension: %v", err)
+	}
+
+	opts := []entc.Option{
+		entc.Extensions(ex),
+	}
+
+	err = entc.Generate("../internal/entities", &gen.Config{
+		Target:  "../internal/generated/ent",
+		Schema:  "github.com/example/package/internal/entities",
+		Package: "github.com/example/package/internal/generated/ent",
+		Features: []gen.Feature{
+			gen.FeatureVersionedMigration,
+			gen.FeatureUpsert,
+			gen.FeatureLock,
+		},
+	}, opts...)
+	if err != nil {
+		log.Fatalf("running ent codegen: %v", err)
+	}
+}
+```
 
 ## Tests
 
@@ -277,4 +316,16 @@ var handler *mocks.Handler
     Expect(resp).To(Equal(thunderEvents.Success))
 
     ...
+```
+
+## Generate command
+
+```go
+// package/cmd/generate.go
+
+package generate
+
+//go:generate go run entc.go
+//go:generate go run github.com/99designs/gqlgen
+//go:generate sh -c "protoc --experimental_allow_proto3_optional --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --proto_path=../internal/transport-inbound/grpc/proto --go_out=../internal/generated/grpc/ --go-grpc_out=../internal/generated/grpc/ ../internal/transport-inbound/grpc/proto/*.proto"
 ```
