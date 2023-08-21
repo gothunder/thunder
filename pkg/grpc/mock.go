@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/rs/zerolog"
@@ -14,7 +13,6 @@ import (
 )
 
 func StartTestGrpcService(lc fx.Lifecycle, server GrpcServer, logger *zerolog.Logger) *grpc.ClientConn {
-	fmt.Println("Starting test gRPC service")
 	buffer := 101024 * 1024
 	lis := bufconn.Listen(buffer)
 
