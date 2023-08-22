@@ -12,7 +12,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.7.0
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.29.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 	github.com/vektah/gqlparser/v2 v2.5.1
 	github.com/vektra/mockery/v2 v2.20.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
