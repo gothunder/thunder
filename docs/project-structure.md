@@ -58,6 +58,11 @@ the database / ORM without the use of your repository.
 This is where the code for any other feature that does not fit into the above
 categories or transport modules should go.
 
+### `pkg/grpc`
+
+This is where `protoc` outputs the generated code for your gRPC services. You
+shouldn't add any code here manually.
+
 ### Examples
 
 #### `internal/features/controller`

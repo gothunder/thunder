@@ -9,7 +9,7 @@ Install the prerequisites listed in [gRPC Go - Quick Start](https://grpc.io/docs
 Add the following code to `cmd/generate/generate.go`:
 
 ```
-//go:generate sh -c "protoc --experimental_allow_proto3_optional --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --proto_path=../transport-inbound/grpc/proto/ --go_out=./grpc/ --go-grpc_out=./grpc/ ../transport-inbound/grpc/proto/*.proto"
+//go:generate sh -c "protoc --experimental_allow_proto3_optional --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --proto_path=../transport-inbound/grpc/proto --go_out=../../pkg/grpc/ --go-grpc_out=../../pkg/grpc/ ../transport-inbound/grpc/proto/*.proto"
 ```
 
 In `main.go`:
@@ -74,7 +74,7 @@ import (
 
 	"github.com/example/package/v3/internal/features/commands"
 	"github.com/example/package/internal/features/queries"
-	pb "github.com/example/package/internal/generated/grpc"
+	pb "github.com/example/package/pkg/grpc"
 	featureserver "github.com/example/package/internal/transport-inbound/grpc/feature-server"
 	"github.com/rs/zerolog"
 
@@ -161,7 +161,7 @@ package featureserver
 import (
 	"github.com/example/package/internal/features/commands"
 	"github.com/example/package/internal/features/queries"
-	pb "github.com/example/package/internal/generated/grpc"
+	pb "github.com/example/package/pkg/grpc"
 )
 
 // FeatureServer defines the feature server
@@ -199,7 +199,7 @@ import (
 	"github.com/example/package/internal/transport-inbound/grpc/feature-server/formatters"
 	"github.com/example/package/internal/transport-inbound/grpc/feature-server/parsers"
 
-	pb "github.com/example/package/internal/generated/grpc"
+	pb "github.com/example/package/pkg/grpc"
 )
 
 // ListFeatureEntities ...

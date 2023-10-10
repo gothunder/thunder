@@ -327,5 +327,5 @@ package generate
 
 //go:generate go run entc.go
 //go:generate go run github.com/99designs/gqlgen
-//go:generate sh -c "protoc --experimental_allow_proto3_optional --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --proto_path=../internal/transport-inbound/grpc/proto --go_out=../internal/generated/grpc/ --go-grpc_out=../internal/generated/grpc/ ../internal/transport-inbound/grpc/proto/*.proto"
+//go:generate sh -c "protoc --experimental_allow_proto3_optional --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative --proto_path=../transport-inbound/grpc/proto --go_out=../../pkg/grpc/ --go-grpc_out=../../pkg/grpc/ ../transport-inbound/grpc/proto/*.proto"
 ```
