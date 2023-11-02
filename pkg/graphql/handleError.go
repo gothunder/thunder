@@ -42,7 +42,7 @@ func HandleError(ctx context.Context, err error) *gqlerror.Error {
 		log.LogError(ctx, matchErr)
 	}
 
-	if !is4xx {
+	if is4xx {
 		err = roxy.SetErrorLogLevel(err, roxy.InfoLevel)
 	}
 
@@ -53,7 +53,7 @@ func HandleError(ctx context.Context, err error) *gqlerror.Error {
 		log.LogError(ctx, matchErr)
 	}
 
-	if !is5xx {
+	if is5xx {
 		message = http.StatusText(status)
 	}
 
