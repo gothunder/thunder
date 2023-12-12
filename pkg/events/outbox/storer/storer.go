@@ -1,4 +1,4 @@
-package outbox
+package storer
 
 import (
 	"sort"
@@ -16,7 +16,7 @@ type TransactionalStorer interface {
 }
 
 func NewOutboxStorer(options ...StorerOptions) (storer Storer, err error) {
-	cfg := &config{
+	cfg := &storerConfig{
 		wrappers: make([]storerWrapper, 0),
 	}
 	for _, opt := range options {
@@ -36,7 +36,7 @@ func NewOutboxStorer(options ...StorerOptions) (storer Storer, err error) {
 	return storer, nil
 }
 
-type config struct {
+type storerConfig struct {
 	wrappers []storerWrapper
 }
 
@@ -45,10 +45,10 @@ type storerWrapper struct {
 	order int // the higher the number, the more external the wrapper
 }
 
-type StorerOptions func(*config)
+type StorerOptions func(*storerConfig)
 
 func WithTracing() StorerOptions {
-	return func(cfg *config) {
+	return func(cfg *storerConfig) {
 		wrapper := storerWrapper{
 			wrap: func(storer Storer) (Storer, error) {
 				return internaloutbox.WrapStorerWithTracing(storer), nil
@@ -63,7 +63,7 @@ func WithTracing() StorerOptions {
 }
 
 func WithLogging() StorerOptions {
-	return func(cfg *config) {
+	return func(cfg *storerConfig) {
 		wrapper := storerWrapper{
 			wrap: func(storer Storer) (Storer, error) {
 				return internaloutbox.WrapStorerWithLogging(storer), nil
@@ -75,7 +75,7 @@ func WithLogging() StorerOptions {
 }
 
 func WithMetrics() StorerOptions {
-	return func(cfg *config) {
+	return func(cfg *storerConfig) {
 		wrapper := storerWrapper{
 			wrap: func(storer Storer) (Storer, error) {
 				return internaloutbox.WrapStorerWithMetrics(storer)

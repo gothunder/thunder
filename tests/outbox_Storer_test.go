@@ -6,7 +6,8 @@ import (
 
 	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit"
 	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/enttest"
-	"github.com/gothunder/thunder/pkg/events/outbox"
+	"github.com/gothunder/thunder/pkg/events/outbox/message"
+	"github.com/gothunder/thunder/pkg/events/outbox/storer"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -30,7 +31,7 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with no Options", func() {
 			It("should return a non-nil Storer and nil error", func() {
 				// Act
-				storer, err := outbox.NewOutboxStorer()
+				storer, err := storer.NewOutboxStorer()
 
 				// Assert
 				Expect(err).ShouldNot(HaveOccurred())
@@ -40,38 +41,38 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with Options", func() {
 			It("should return a non-nil Storer and nil error", func() {
 				// Arrange
-				testsCases := [][]outbox.StorerOptions{
+				testsCases := [][]storer.StorerOptions{
 					{
-						outbox.WithLogging(),
+						storer.WithLogging(),
 					},
 					{
-						outbox.WithTracing(),
+						storer.WithTracing(),
 					},
 					{
-						outbox.WithMetrics(),
+						storer.WithMetrics(),
 					},
 					{
-						outbox.WithLogging(),
-						outbox.WithTracing(),
+						storer.WithLogging(),
+						storer.WithTracing(),
 					},
 					{
-						outbox.WithLogging(),
-						outbox.WithMetrics(),
+						storer.WithLogging(),
+						storer.WithMetrics(),
 					},
 					{
-						outbox.WithTracing(),
-						outbox.WithMetrics(),
+						storer.WithTracing(),
+						storer.WithMetrics(),
 					},
 					{
-						outbox.WithLogging(),
-						outbox.WithTracing(),
-						outbox.WithMetrics(),
+						storer.WithLogging(),
+						storer.WithTracing(),
+						storer.WithMetrics(),
 					},
 				}
 
 				for _, opts := range testsCases {
 					// Act
-					storer, err := outbox.NewOutboxStorer(opts...)
+					storer, err := storer.NewOutboxStorer(opts...)
 
 					// Assert
 					Expect(err).ShouldNot(HaveOccurred())
@@ -85,15 +86,15 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with valid messages", func() {
 			It("should return a nil error", func() {
 				// Arrange
-				storer, err := outbox.NewOutboxStorer(
-					outbox.WithLogging(),
-					outbox.WithTracing(),
-					outbox.WithMetrics(),
+				storer, err := storer.NewOutboxStorer(
+					storer.WithLogging(),
+					storer.WithTracing(),
+					storer.WithMetrics(),
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(storer).ShouldNot(BeNil())
 
-				messages := []outbox.Message{
+				messages := []message.Message{
 					{
 						Topic:   "test",
 						Payload: []byte("test"),
@@ -113,15 +114,15 @@ var _ = Describe("outbox.Storer", func() {
 			})
 			It("should store those messages in the database", func() {
 				// Arrange
-				storer, err := outbox.NewOutboxStorer(
-					outbox.WithLogging(),
-					outbox.WithTracing(),
-					outbox.WithMetrics(),
+				storer, err := storer.NewOutboxStorer(
+					storer.WithLogging(),
+					storer.WithTracing(),
+					storer.WithMetrics(),
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(storer).ShouldNot(BeNil())
 
-				messages := []outbox.Message{
+				messages := []message.Message{
 					{
 						Topic:   "test",
 						Payload: []byte("test"),
@@ -160,15 +161,15 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with invalid messages", func() {
 			It("should return an error", func() {
 				// Arrange
-				storer, err := outbox.NewOutboxStorer(
-					outbox.WithLogging(),
-					outbox.WithTracing(),
-					outbox.WithMetrics(),
+				storer, err := storer.NewOutboxStorer(
+					storer.WithLogging(),
+					storer.WithTracing(),
+					storer.WithMetrics(),
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(storer).ShouldNot(BeNil())
 
-				messages := [][]outbox.Message{
+				messages := [][]message.Message{
 					{
 						{
 							Topic:   "",
@@ -197,15 +198,15 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with a invalid client", func() {
 			It("should return error", func() {
 				// Arrange
-				storer, err := outbox.NewOutboxStorer(
-					outbox.WithLogging(),
-					outbox.WithTracing(),
-					outbox.WithMetrics(),
+				storer, err := storer.NewOutboxStorer(
+					storer.WithLogging(),
+					storer.WithTracing(),
+					storer.WithMetrics(),
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(storer).ShouldNot(BeNil())
 
-				messages := []outbox.Message{
+				messages := []message.Message{
 					{
 						Topic:   "test",
 						Payload: []byte("test"),
@@ -234,10 +235,10 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with a valid client", func() {
 			It("should return a non-nil TransactionalStorer", func() {
 				// Arrange
-				storer, err := outbox.NewOutboxStorer(
-					outbox.WithLogging(),
-					outbox.WithTracing(),
-					outbox.WithMetrics(),
+				storer, err := storer.NewOutboxStorer(
+					storer.WithLogging(),
+					storer.WithTracing(),
+					storer.WithMetrics(),
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(storer).ShouldNot(BeNil())
@@ -253,10 +254,10 @@ var _ = Describe("outbox.Storer", func() {
 		When("called with an invalid client", func() {
 			It("should return a nil TransactionalStorer", func() {
 				// Arrange
-				storer, err := outbox.NewOutboxStorer(
-					outbox.WithLogging(),
-					outbox.WithTracing(),
-					outbox.WithMetrics(),
+				storer, err := storer.NewOutboxStorer(
+					storer.WithLogging(),
+					storer.WithTracing(),
+					storer.WithMetrics(),
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(storer).ShouldNot(BeNil())
@@ -274,10 +275,10 @@ var _ = Describe("outbox.Storer", func() {
 			When("called with valid messages", func() {
 				It("should return a nil error", func() {
 					// Arrange
-					storer, err := outbox.NewOutboxStorer(
-						outbox.WithLogging(),
-						outbox.WithTracing(),
-						outbox.WithMetrics(),
+					storer, err := storer.NewOutboxStorer(
+						storer.WithLogging(),
+						storer.WithTracing(),
+						storer.WithMetrics(),
 					)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(storer).ShouldNot(BeNil())
@@ -286,7 +287,7 @@ var _ = Describe("outbox.Storer", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(txStorer).ShouldNot(BeNil())
 
-					messages := []outbox.Message{
+					messages := []message.Message{
 						{
 							Topic:   "test",
 							Payload: []byte("test"),
@@ -306,10 +307,10 @@ var _ = Describe("outbox.Storer", func() {
 				})
 				It("should store those messages in the database", func() {
 					// Arrange
-					storer, err := outbox.NewOutboxStorer(
-						outbox.WithLogging(),
-						outbox.WithTracing(),
-						outbox.WithMetrics(),
+					storer, err := storer.NewOutboxStorer(
+						storer.WithLogging(),
+						storer.WithTracing(),
+						storer.WithMetrics(),
 					)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(storer).ShouldNot(BeNil())
@@ -318,7 +319,7 @@ var _ = Describe("outbox.Storer", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(txStorer).ShouldNot(BeNil())
 
-					messages := []outbox.Message{
+					messages := []message.Message{
 						{
 							Topic:   "test",
 							Payload: []byte("test"),
@@ -358,10 +359,10 @@ var _ = Describe("outbox.Storer", func() {
 			When("called with invalid messages", func() {
 				It("should return an error", func() {
 					// Arrange
-					storer, err := outbox.NewOutboxStorer(
-						outbox.WithLogging(),
-						outbox.WithTracing(),
-						outbox.WithMetrics(),
+					storer, err := storer.NewOutboxStorer(
+						storer.WithLogging(),
+						storer.WithTracing(),
+						storer.WithMetrics(),
 					)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(storer).ShouldNot(BeNil())
@@ -370,7 +371,7 @@ var _ = Describe("outbox.Storer", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(txStorer).ShouldNot(BeNil())
 
-					messages := [][]outbox.Message{
+					messages := [][]message.Message{
 						{
 							{
 								Topic:   "",

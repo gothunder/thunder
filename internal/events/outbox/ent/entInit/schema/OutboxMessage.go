@@ -2,7 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"github.com/gothunder/thunder/pkg/events/outbox"
+	outboxent "github.com/gothunder/thunder/pkg/events/outbox/ent"
 )
 
 type OutboxMessage struct {
@@ -11,6 +11,6 @@ type OutboxMessage struct {
 
 func (OutboxMessage) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		outbox.OutboxMessageMixin{},
+		outboxent.OutboxMessageMixin{},
 	}
 }
