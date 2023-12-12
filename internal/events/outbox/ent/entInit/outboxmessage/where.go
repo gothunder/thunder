@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/gothunder/thunder/tests/entInit/predicate"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/predicate"
 )
 
 // ID filters vertices based on their ID field.

@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/gothunder/thunder/tests/entInit/outboxmessage"
-	"github.com/gothunder/thunder/tests/entInit/predicate"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/outboxmessage"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/predicate"
 )
 
 const (

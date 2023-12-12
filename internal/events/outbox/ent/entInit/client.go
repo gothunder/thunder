@@ -10,12 +10,12 @@ import (
 	"reflect"
 
 	"github.com/google/uuid"
-	"github.com/gothunder/thunder/tests/entInit/migrate"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/migrate"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/gothunder/thunder/tests/entInit/outboxmessage"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/outboxmessage"
 )
 
 // Client is the client that holds all ent builders.

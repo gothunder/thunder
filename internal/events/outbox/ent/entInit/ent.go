@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/gothunder/thunder/tests/entInit/outboxmessage"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/outboxmessage"
 )
 
 // ent aliases to avoid import conflicts in user's code.

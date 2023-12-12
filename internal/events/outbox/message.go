@@ -2,6 +2,9 @@ package outbox
 
 import (
 	"errors"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -10,9 +13,26 @@ var (
 )
 
 type Message struct {
+	// Fields to be used by the outbox
+	ID        uuid.UUID
+	CreatedAt time.Time
+
+	// Fields to be used during the storage of the message
 	Topic   string
 	Payload []byte
 	Headers map[string]string
+}
+
+func NewMessage(topic string, payload []byte, headers map[string]string) Message {
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	return Message{
+		ID:      uuid.New(),
+		Topic:   topic,
+		Payload: payload,
+		Headers: headers,
+	}
 }
 
 func (m Message) BuildEntMessage(creator MessageCreator) MessageCreator {

@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/gothunder/thunder/tests/entInit/outboxmessage"
-	"github.com/gothunder/thunder/tests/entInit/predicate"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/outboxmessage"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/predicate"
 )
 
 // OutboxMessageQuery is the builder for querying OutboxMessage entities.

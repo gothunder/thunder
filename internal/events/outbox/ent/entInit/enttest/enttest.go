@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/gothunder/thunder/tests/entInit"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit"
 	// required by schema hooks.
-	_ "github.com/gothunder/thunder/tests/entInit/runtime"
+	_ "github.com/gothunder/thunder/internal/events/outbox/ent/entInit/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/gothunder/thunder/tests/entInit/migrate"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/migrate"
 )
 
 type (

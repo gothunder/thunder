@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gothunder/thunder/tests/entInit"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit"
 )
 
 // The OutboxMessageFunc type is an adapter to allow the use of ordinary

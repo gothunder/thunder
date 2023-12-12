@@ -31,27 +31,7 @@ func SafeCallMethod(i interface{}, methodName string, args []reflect.Value) ([]r
 	in := make([]reflect.Value, len(args)+1)
 	in[0] = reflect.ValueOf(i)
 
-	// check if the arguments are of the correct type
 	for k, arg := range args {
-		// if is greater than or equal last argument and is variadic
-		if k+1 >= method.Type.NumIn()-1 && method.Type.IsVariadic() {
-			if arg.Type() != method.Type.In(method.Type.NumIn()-1).Elem() {
-				return nil, roxy.Wrapf(
-					ErrInvalidArgumentType,
-					"argument %d is of type %s, expected %s",
-					k+1, arg.Type(), method.Type.In(method.Type.NumIn()-1).Elem(),
-				)
-			}
-		} else {
-			if arg.Type() != method.Type.In(k+1) {
-				return nil, roxy.Wrapf(
-					ErrInvalidArgumentType,
-					"argument %d is of type %s, expected %s",
-					k+1, arg.Type(), method.Type.In(k+1),
-				)
-			}
-		}
-
 		in[k+1] = arg
 	}
 

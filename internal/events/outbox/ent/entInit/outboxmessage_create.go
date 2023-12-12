@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/gothunder/thunder/tests/entInit/outboxmessage"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/outboxmessage"
 )
 
 // OutboxMessageCreate is the builder for creating a OutboxMessage entity.

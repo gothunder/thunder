@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gothunder/thunder/tests/entInit/outboxmessage"
-	"github.com/gothunder/thunder/tests/entInit/schema"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/outboxmessage"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit/schema"
 )
 
 // The init function reads all schema descriptors with runtime code

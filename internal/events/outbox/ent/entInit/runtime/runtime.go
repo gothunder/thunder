@@ -2,7 +2,7 @@
 
 package runtime
 
-// The schema-stitching logic is generated in github.com/gothunder/thunder/tests/entInit/runtime.go
+// The schema-stitching logic is generated in github.com/gothunder/thunder/internal/events/outbox/ent/entInit/runtime.go
 
 const (
 	Version = "v0.12.4"                                         // Version of ent codegen.
