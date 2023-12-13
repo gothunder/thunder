@@ -6,9 +6,12 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-amqp/pkg/amqp"
 	"github.com/ThreeDotsLabs/watermill/message"
 	internaloutbox "github.com/gothunder/thunder/internal/events/outbox"
 	outboxent "github.com/gothunder/thunder/internal/events/outbox/ent"
+	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/gothunder/thunder/pkg/events/outbox/relayer"
 	"github.com/gothunder/thunder/pkg/events/outbox/storer"
 	"github.com/rs/zerolog"
@@ -135,9 +138,11 @@ func startRelaying(
 // it is meant to be used like following:
 //
 // fx.New(outbox.CreateModule(new(*ent.Client)))
-func CreateModule(ppEntClient interface{}) fx.Option {
-	pollInterval := 5 * time.Second
-	batchSize := 100
+func CreateModule(ppEntClient interface{}, options ...ModuleOption) fx.Option {
+	cfg := defaultModuleConfig()
+	for _, opt := range options {
+		opt(cfg)
+	}
 
 	return fx.Options(
 		fx.Provide(
@@ -147,7 +152,7 @@ func CreateModule(ppEntClient interface{}) fx.Option {
 					ppEntClient,
 					new(fx.Shutdowner),
 					new(*zerolog.Logger))),
-			fx.Annotate(providePoller(pollInterval, batchSize),
+			fx.Annotate(providePoller(cfg.pollInterval, cfg.batchSize),
 				fx.From(
 					ppEntClient,
 					new(fx.Shutdowner),
@@ -165,4 +170,45 @@ func CreateModule(ppEntClient interface{}) fx.Option {
 					new(relayer.MessageMarker))),
 		),
 	)
+}
+
+type moduleConfig struct {
+	pollInterval time.Duration
+	batchSize    int
+}
+
+func defaultModuleConfig() *moduleConfig {
+	return &moduleConfig{
+		pollInterval: 5 * time.Second,
+		batchSize:    100,
+	}
+}
+
+type ModuleOption func(cfg *moduleConfig)
+
+func WithPollInterval(pollInterval time.Duration) ModuleOption {
+	return func(cfg *moduleConfig) {
+		cfg.pollInterval = pollInterval
+	}
+}
+
+func WithBatchSize(batchSize int) ModuleOption {
+	return func(cfg *moduleConfig) {
+		cfg.batchSize = batchSize
+	}
+}
+
+func ProvidePublisher(s fx.Shutdowner, logger *zerolog.Logger) message.Publisher {
+	publisher, err := amqp.NewPublisher(
+		rabbitmq.WhatermillConfig(rabbitmq.LoadConfig(logger)),
+		watermill.NewStdLogger(false, false))
+
+	if err != nil {
+		logger.Err(err).Msg("failed to publisher")
+		if err = s.Shutdown(); err != nil {
+			logger.Err(err).Msg("failed to shutdown")
+		}
+	}
+
+	return publisher
 }

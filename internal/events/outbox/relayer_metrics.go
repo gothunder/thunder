@@ -33,12 +33,12 @@ func (w *withMetricsReayer) Start(ctx context.Context) error {
 }
 
 // prepareMessages implements Relayer.
-func (w *withMetricsReayer) prepareMessages(msgPack []Message) map[string][]*message.Message {
+func (w *withMetricsReayer) prepareMessages(msgPack []*Message) []*message.Message {
 	return w.next.prepareMessages(msgPack)
 }
 
 // relay implements Relayer.
-func (w *withMetricsReayer) relay(ctx context.Context, msgPack []Message) error {
+func (w *withMetricsReayer) relay(ctx context.Context, msgPack []*Message) error {
 	err := w.next.relay(ctx, msgPack)
 
 	defer func() {

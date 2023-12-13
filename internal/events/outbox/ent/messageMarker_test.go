@@ -57,7 +57,7 @@ func TestEntMessageMarker_MarkAsPublished(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		msgPack []outbox.Message
+		msgPack []*outbox.Message
 	}
 	tests := []struct {
 		name      string
@@ -73,7 +73,7 @@ func TestEntMessageMarker_MarkAsPublished(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				msgPack: []outbox.Message{
+				msgPack: []*outbox.Message{
 					{
 						ID: uuid.MustParse("14d8e114-71c0-4309-81aa-351d64dd9d74"),
 					},

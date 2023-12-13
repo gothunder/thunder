@@ -3,6 +3,7 @@ package outbox
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/TheRafaBonin/roxy"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -20,17 +21,17 @@ var (
 type Relayer interface {
 	Start(ctx context.Context) error
 	Close(ctx context.Context) error
-	relay(ctx context.Context, msgPack []Message) error
-	prepareMessages(msgPack []Message) map[string][]*message.Message
+	relay(ctx context.Context, msgPack []*Message) error
+	prepareMessages(msgPack []*Message) []*message.Message
 }
 
 type MessagePoller interface {
-	Poll(ctx context.Context) (<-chan []Message, func(), error)
+	Poll(ctx context.Context) (<-chan []*Message, func(), error)
 	Close() error
 }
 
 type MessageMarker interface {
-	MarkAsPublished(ctx context.Context, msgPack []Message) error
+	MarkAsPublished(ctx context.Context, msgPack []*Message) error
 }
 
 type relayer struct {
@@ -98,19 +99,34 @@ func (r *relayer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (r *relayer) relay(ctx context.Context, msgPack []Message) error {
+func (r *relayer) relay(ctx context.Context, msgPack []*Message) error {
 	select {
 	case <-r.closedChan:
 		return backoff.Permanent(roxy.Wrap(ErrRelayerClosed, "relaying messages"))
 	default:
-		msgMap := r.prepareMessages(msgPack)
+		msgs := r.prepareMessages(msgPack)
 
-		for topic, msgs := range msgMap {
-			if err := r.publisher.Publish(topic, msgs...); err != nil {
+		for i, msg := range msgs {
+			// skips messages that have already been delivered in failed attempts
+			if !msgPack[i].DeliveredAt.IsZero() {
+				continue
+			}
+
+			// publishes one at a time to prevent desordering
+			if err := r.publisher.Publish(msgPack[i].Topic, msg); err != nil {
+				// marks all previous messages as delivered in case of error to prevent
+				// message duplication
+				if markErr := r.marker.MarkAsPublished(ctx, msgPack[:i]); markErr != nil {
+					return roxy.Wrap(markErr, "marking messages as published")
+				}
 				return roxy.Wrap(err, "publishing messages")
 			}
+
+			// marks message as delivered
+			msgPack[i].DeliveredAt = time.Now()
 		}
 
+		// marks the whole pack as delivered
 		if err := r.marker.MarkAsPublished(ctx, msgPack); err != nil {
 			return roxy.Wrap(err, "marking messages as published")
 		}
@@ -119,22 +135,19 @@ func (r *relayer) relay(ctx context.Context, msgPack []Message) error {
 	}
 }
 
-func (r *relayer) prepareMessages(msgPack []Message) map[string][]*message.Message {
-	msgMap := make(map[string][]*message.Message)
+func (r *relayer) prepareMessages(msgPack []*Message) []*message.Message {
+	msgs := make([]*message.Message, 0, len(msgPack))
 
 	for _, msg := range msgPack {
-		if _, ok := msgMap[msg.Topic]; !ok {
-			msgMap[msg.Topic] = make([]*message.Message, 0)
-		}
 		wMsg := message.NewMessage(msg.ID.String(), msg.Payload)
 		if msg.Headers != nil {
 			wMsg.Metadata = msg.Headers
 		}
 
-		msgMap[msg.Topic] = append(msgMap[msg.Topic], wMsg)
+		msgs = append(msgs, wMsg)
 	}
 
-	return msgMap
+	return msgs
 }
 
 func (r *relayer) Close(ctx context.Context) error {

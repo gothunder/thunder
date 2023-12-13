@@ -34,12 +34,12 @@ func (w *withTracingRelayer) Start(ctx context.Context) error {
 }
 
 // prepareMessages implements Relayer.
-func (w *withTracingRelayer) prepareMessages(msgPack []Message) map[string][]*message.Message {
+func (w *withTracingRelayer) prepareMessages(msgPack []*Message) []*message.Message {
 	return w.next.prepareMessages(msgPack)
 }
 
 // relay implements Relayer.
-func (w *withTracingRelayer) relay(ctx context.Context, msgPack []Message) error {
+func (w *withTracingRelayer) relay(ctx context.Context, msgPack []*Message) error {
 	spans := make([]trace.Span, len(msgPack))
 
 	for i := range msgPack {
@@ -85,8 +85,8 @@ func (w *withTracingMessagePoller) Close() error {
 }
 
 // Poll implements MessagePoller.
-func (w *withTracingMessagePoller) Poll(ctx context.Context) (<-chan []Message, func(), error) {
-	tMessageChan := make(chan []Message)
+func (w *withTracingMessagePoller) Poll(ctx context.Context) (<-chan []*Message, func(), error) {
+	tMessageChan := make(chan []*Message)
 
 	messages, next, err := w.next.Poll(ctx)
 	if err != nil {

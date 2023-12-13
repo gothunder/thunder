@@ -16,15 +16,15 @@ func newBackoffMock(d time.Duration) backoff.BackOff {
 }
 
 type messagePollerMock struct {
-	msgPacks     [][]Message
+	msgPacks     [][]*Message
 	pollCalls    int
 	closeResults []error
 	closeCalls   int
 }
 
-func (m *messagePollerMock) Poll(ctx context.Context) (<-chan []Message, func(), error) {
+func (m *messagePollerMock) Poll(ctx context.Context) (<-chan []*Message, func(), error) {
 	m.pollCalls++
-	msgPacks := make(chan []Message, len(m.msgPacks))
+	msgPacks := make(chan []*Message, len(m.msgPacks))
 	for _, msgPack := range m.msgPacks {
 		msgPacks <- msgPack
 	}
@@ -42,7 +42,7 @@ func (m *messagePollerMock) Close() error {
 	return ret
 }
 
-func newMessagePullerMock(msgPacks [][]Message, closeResults []error) MessagePoller {
+func newMessagePullerMock(msgPacks [][]*Message, closeResults []error) MessagePoller {
 	return &messagePollerMock{
 		msgPacks:     msgPacks,
 		closeResults: closeResults,
@@ -51,10 +51,10 @@ func newMessagePullerMock(msgPacks [][]Message, closeResults []error) MessagePol
 
 type messageMarkerMock struct {
 	markResults []error
-	markCalls   [][]Message
+	markCalls   [][]*Message
 }
 
-func (m *messageMarkerMock) MarkAsPublished(ctx context.Context, msgPack []Message) error {
+func (m *messageMarkerMock) MarkAsPublished(ctx context.Context, msgPack []*Message) error {
 	m.markCalls = append(m.markCalls, msgPack)
 	if len(m.markResults) == 0 {
 		return nil
@@ -199,7 +199,7 @@ func TestRelayer_Start(t *testing.T) {
 		}
 		poller      MessagePoller
 		marker      MessageMarker
-		markerCalls [][]Message
+		markerCalls [][]*Message
 		expectedErr error
 	}{
 		{
@@ -219,7 +219,7 @@ func TestRelayer_Start(t *testing.T) {
 					},
 				},
 			},
-			poller: newMessagePullerMock([][]Message{
+			poller: newMessagePullerMock([][]*Message{
 				{
 					{
 						ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
@@ -229,7 +229,7 @@ func TestRelayer_Start(t *testing.T) {
 				},
 			}, []error{}),
 			marker: newMessageMarkerMock([]error{}),
-			markerCalls: [][]Message{{
+			markerCalls: [][]*Message{{
 				{
 					ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
 					Topic:   "topic",
@@ -239,7 +239,7 @@ func TestRelayer_Start(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name:      "publsher error once, then retry success",
+			name:      "publisher error once, then retry success",
 			publisher: newPublisherMock([]error{errors.New("error")}),
 			publishCalls: []struct {
 				topic    string
@@ -264,7 +264,7 @@ func TestRelayer_Start(t *testing.T) {
 					},
 				},
 			},
-			poller: newMessagePullerMock([][]Message{
+			poller: newMessagePullerMock([][]*Message{
 				{
 					{
 						ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
@@ -274,7 +274,7 @@ func TestRelayer_Start(t *testing.T) {
 				},
 			}, []error{}),
 			marker: newMessageMarkerMock([]error{}),
-			markerCalls: [][]Message{{
+			markerCalls: [][]*Message{{}, {
 				{
 					ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
 					Topic:   "topic",
@@ -299,17 +299,8 @@ func TestRelayer_Start(t *testing.T) {
 						},
 					},
 				},
-				{
-					topic: "topic",
-					messages: []*message.Message{
-						{
-							UUID:    "8171478b-fece-4093-aa7e-342c4d816a21",
-							Payload: []byte("payload"),
-						},
-					},
-				},
 			},
-			poller: newMessagePullerMock([][]Message{
+			poller: newMessagePullerMock([][]*Message{
 				{
 					{
 						ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
@@ -319,7 +310,7 @@ func TestRelayer_Start(t *testing.T) {
 				},
 			}, []error{}),
 			marker: newMessageMarkerMock([]error{errors.New("error")}),
-			markerCalls: [][]Message{{
+			markerCalls: [][]*Message{{
 				{
 					ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
 					Topic:   "topic",
@@ -359,17 +350,8 @@ func TestRelayer_Start(t *testing.T) {
 						},
 					},
 				},
-				{
-					topic: "topic",
-					messages: []*message.Message{
-						{
-							UUID:    "8171478b-fece-4093-aa7e-342c4d816a21",
-							Payload: []byte("payload"),
-						},
-					},
-				},
 			},
-			poller: newMessagePullerMock([][]Message{
+			poller: newMessagePullerMock([][]*Message{
 				{
 					{
 						ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
@@ -378,8 +360,8 @@ func TestRelayer_Start(t *testing.T) {
 					},
 				},
 			}, []error{}),
-			marker: newMessageMarkerMock([]error{errors.New("error")}),
-			markerCalls: [][]Message{{
+			marker: newMessageMarkerMock([]error{nil, errors.New("error")}),
+			markerCalls: [][]*Message{{}, {
 				{
 					ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),
 					Topic:   "topic",
@@ -464,7 +446,7 @@ func TestRelayer_Start(t *testing.T) {
 func TestRelayer_Cancel(t *testing.T) {
 	t.Run("Relayer cancel", func(t *testing.T) {
 		publisher := newPublisherMock([]error{})
-		poller := newMessagePullerMock([][]Message{
+		poller := newMessagePullerMock([][]*Message{
 			{
 				{
 					ID:      uuid.MustParse("8171478b-fece-4093-aa7e-342c4d816a21"),

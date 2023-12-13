@@ -40,7 +40,7 @@ type entMessageMarker struct {
 }
 
 // MarkAsPublished implements outbox.MessageMarker.
-func (e entMessageMarker) MarkAsPublished(ctx context.Context, msgPack []outbox.Message) error {
+func (e entMessageMarker) MarkAsPublished(ctx context.Context, msgPack []*outbox.Message) error {
 	ids := make([]uuid.UUID, len(msgPack))
 	for i, msg := range msgPack {
 		ids[i] = msg.ID

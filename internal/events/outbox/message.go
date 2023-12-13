@@ -14,8 +14,9 @@ var (
 
 type Message struct {
 	// Fields to be used by the outbox
-	ID        uuid.UUID
-	CreatedAt time.Time
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	DeliveredAt time.Time
 
 	// Fields to be used during the storage of the message
 	Topic   string

@@ -199,7 +199,7 @@ func TestEntMessagePoller_Poll(t *testing.T) {
 		return
 	}
 
-	wantMessages := []outbox.Message{
+	wantMessages := []*outbox.Message{
 		{
 			ID:        population[1].ID,
 			Payload:   population[1].Payload,
@@ -226,7 +226,7 @@ func TestEntMessagePoller_Poll(t *testing.T) {
 	// Act
 	messagesChan, next, err := e.Poll(ctx)
 
-	messages := make([]outbox.Message, 0)
+	messages := make([]*outbox.Message, 0)
 	go func() {
 		for msgPack := range messagesChan {
 			messages = append(messages, msgPack...)

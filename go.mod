@@ -8,6 +8,7 @@ require (
 	entgo.io/ent v0.12.4
 	github.com/99designs/gqlgen v0.17.24
 	github.com/TheRafaBonin/roxy v0.6.1
+	github.com/ThreeDotsLabs/watermill-amqp v1.1.4
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/uuid v1.3.1
@@ -30,14 +31,18 @@ require (
 	ariga.io/atlas v0.14.1-0.20230918065911-83ad451a4935 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
+	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/chigopher/pathlib v0.12.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/streadway/amqp v1.0.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect

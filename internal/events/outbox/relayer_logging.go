@@ -56,12 +56,12 @@ func (w *withLoggingReayer) Start(ctx context.Context) (err error) {
 }
 
 // prepareMessages implements Relayer.
-func (w *withLoggingReayer) prepareMessages(msgPack []Message) map[string][]*message.Message {
+func (w *withLoggingReayer) prepareMessages(msgPack []*Message) []*message.Message {
 	return w.next.prepareMessages(msgPack)
 }
 
 // relay implements Relayer.
-func (w *withLoggingReayer) relay(ctx context.Context, msgPack []Message) (err error) {
+func (w *withLoggingReayer) relay(ctx context.Context, msgPack []*Message) (err error) {
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
 

@@ -86,12 +86,12 @@ func (e *entMessagePoller) Close() error {
 }
 
 // Poll implements outbox.MessagePoller.
-func (e *entMessagePoller) Poll(ctx context.Context) (<-chan []outbox.Message, func(), error) {
+func (e *entMessagePoller) Poll(ctx context.Context) (<-chan []*outbox.Message, func(), error) {
 	if e.closed {
 		return nil, func() {}, ErrMessagePollerClosed
 	}
 
-	messageChan := make(chan []outbox.Message)
+	messageChan := make(chan []*outbox.Message)
 	logger := zerolog.Ctx(ctx)
 
 	go func() {
@@ -125,9 +125,9 @@ func (e *entMessagePoller) Poll(ctx context.Context) (<-chan []outbox.Message, f
 	}, nil
 }
 
-func (e *entMessagePoller) forwardMessages(ctx context.Context, msgChan chan<- []outbox.Message) error {
+func (e *entMessagePoller) forwardMessages(ctx context.Context, msgChan chan<- []*outbox.Message) error {
 	var err error
-	var msgPack []outbox.Message
+	var msgPack []*outbox.Message
 	for msgPack, err = e.readBatch(ctx); len(msgPack) > 0 && err == nil; msgPack, err = e.readBatch(ctx) {
 		select {
 		case <-ctx.Done():
@@ -144,7 +144,7 @@ func (e *entMessagePoller) forwardMessages(ctx context.Context, msgChan chan<- [
 	return roxy.Wrap(err, "reading batch of messages")
 }
 
-func (e *entMessagePoller) readBatch(ctx context.Context) ([]outbox.Message, error) {
+func (e *entMessagePoller) readBatch(ctx context.Context) ([]*outbox.Message, error) {
 	queryBuilder, err := newQueryBuilder(e.client)
 	if err != nil {
 		return nil, roxy.Wrap(err, "creating query builder")
@@ -229,7 +229,7 @@ func (q *outboxMessageQueryBuilder) OrderByCreatedAt() error {
 	return nil
 }
 
-func (q *outboxMessageQueryBuilder) All(ctx context.Context) ([]outbox.Message, error) {
+func (q *outboxMessageQueryBuilder) All(ctx context.Context) ([]*outbox.Message, error) {
 	// All
 	result, err := utils.SafeCallMethod(q.builder, methodQueryAll, []reflect.Value{
 		reflect.ValueOf(ctx),
@@ -244,13 +244,13 @@ func (q *outboxMessageQueryBuilder) All(ctx context.Context) ([]outbox.Message, 
 	return parseEntMessages(result[0])
 }
 
-func parseEntMessages(result reflect.Value) ([]outbox.Message, error) {
+func parseEntMessages(result reflect.Value) ([]*outbox.Message, error) {
 	msgPack := result
 	if msgPack.Kind() != reflect.Slice {
 		return nil, roxy.Wrap(ErrInvalidMessagePack, "getting slice of messages")
 	}
 
-	messages := make([]outbox.Message, msgPack.Len())
+	messages := make([]*outbox.Message, msgPack.Len())
 	for i := 0; i < msgPack.Len(); i++ {
 		msg := msgPack.Index(i)
 		if msg.Kind() == reflect.Ptr {
@@ -260,7 +260,7 @@ func parseEntMessages(result reflect.Value) ([]outbox.Message, error) {
 			return nil, roxy.Wrap(ErrInvalidMessagePack, "getting message struct")
 		}
 
-		messages[i] = outbox.Message{
+		messages[i] = &outbox.Message{
 			ID:        msg.FieldByName("ID").Interface().(uuid.UUID),
 			CreatedAt: msg.FieldByName("CreatedAt").Interface().(time.Time),
 			Topic:     msg.FieldByName("Topic").Interface().(string),
