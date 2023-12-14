@@ -77,6 +77,21 @@ func provideMarker(entClient interface{}, s fx.Shutdowner, logger *zerolog.Logge
 	return marker
 }
 
+func providePublisher(s fx.Shutdowner, logger *zerolog.Logger) message.Publisher {
+	publisher, err := amqp.NewPublisher(
+		rabbitmq.WhatermillConfig(rabbitmq.LoadConfig(logger)),
+		watermill.NewStdLogger(false, false))
+
+	if err != nil {
+		logger.Err(err).Msg("failed to publisher")
+		if err = s.Shutdown(); err != nil {
+			logger.Err(err).Msg("failed to shutdown")
+		}
+	}
+
+	return publisher
+}
+
 func startRelaying(
 	lifecycle fx.Lifecycle,
 	s fx.Shutdowner,
@@ -138,7 +153,7 @@ func startRelaying(
 // it is meant to be used like following:
 //
 // fx.New(outbox.CreateModule(new(*ent.Client)))
-func CreateModule(ppEntClient interface{}, options ...ModuleOption) fx.Option {
+func CreateRelayerModule(ppEntClient interface{}, options ...ModuleOption) fx.Option {
 	cfg := defaultModuleConfig()
 	for _, opt := range options {
 		opt(cfg)
@@ -146,7 +161,7 @@ func CreateModule(ppEntClient interface{}, options ...ModuleOption) fx.Option {
 
 	return fx.Options(
 		fx.Provide(
-			provideStorer,
+			providePublisher,
 			fx.Annotate(provideMarker,
 				fx.From(
 					ppEntClient,
@@ -172,6 +187,10 @@ func CreateModule(ppEntClient interface{}, options ...ModuleOption) fx.Option {
 	)
 }
 
+var StorerModule = fx.Options(
+	fx.Provide(provideStorer),
+)
+
 type moduleConfig struct {
 	pollInterval time.Duration
 	batchSize    int
@@ -196,19 +215,4 @@ func WithBatchSize(batchSize int) ModuleOption {
 	return func(cfg *moduleConfig) {
 		cfg.batchSize = batchSize
 	}
-}
-
-func ProvidePublisher(s fx.Shutdowner, logger *zerolog.Logger) message.Publisher {
-	publisher, err := amqp.NewPublisher(
-		rabbitmq.WhatermillConfig(rabbitmq.LoadConfig(logger)),
-		watermill.NewStdLogger(false, false))
-
-	if err != nil {
-		logger.Err(err).Msg("failed to publisher")
-		if err = s.Shutdown(); err != nil {
-			logger.Err(err).Msg("failed to shutdown")
-		}
-	}
-
-	return publisher
 }
