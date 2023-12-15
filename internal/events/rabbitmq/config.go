@@ -9,6 +9,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	// DefaultInitialInterval is the default initial interval for the backoff
+	DefaultInitialInterval = backoff.DefaultInitialInterval
+	// DefaultRandomizationFactor is the default randomization factor for the backoff
+	DefaultRandomizationFactor = backoff.DefaultRandomizationFactor
+	// DefaultMultiplier is the default multiplier for the backoff
+	DefaultMultiplier = 2
+	// DefaultMaxInterval is the default max interval for the backoff
+	DefaultMaxInterval = backoff.DefaultMaxInterval
+	// DefaultMaxRetries is the default max retries for the backoff
+	DefaultMaxRetries = 5
+)
+
 type Config struct {
 	ExchangeName        string
 	QueueName           string
@@ -29,11 +42,11 @@ func LoadConfig(log *zerolog.Logger) Config {
 		QueueName:           os.Getenv("RABBIT_QUEUE"),
 		URL:                 os.Getenv("RABBIT_URL"),
 		ConsumerName:        os.Getenv("RABBIT_CONSUMER"),
-		MaxRetries:          3,
-		InitialInterval:     backoff.DefaultInitialInterval,
-		RandomizationFactor: backoff.DefaultRandomizationFactor,
-		Multiplier:          backoff.DefaultMultiplier,
-		MaxInterval:         backoff.DefaultMaxInterval,
+		MaxRetries:          DefaultMaxRetries,
+		InitialInterval:     DefaultInitialInterval,
+		RandomizationFactor: DefaultRandomizationFactor,
+		Multiplier:          DefaultMultiplier,
+		MaxInterval:         DefaultMaxInterval,
 	}
 
 	if c.ExchangeName == "" {

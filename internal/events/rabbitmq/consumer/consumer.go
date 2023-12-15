@@ -39,7 +39,8 @@ func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsume
 
 		chManager: chManager,
 
-		wg: &sync.WaitGroup{},
+		wg:        &sync.WaitGroup{},
+		backoffWg: &sync.WaitGroup{},
 	}
 
 	return &consumer, nil

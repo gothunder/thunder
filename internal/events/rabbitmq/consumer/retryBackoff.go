@@ -15,10 +15,13 @@ func (r *rabbitmqConsumer) retryBackoff(msg amqp.Delivery, logger *zerolog.Logge
 	// Get the current retry count
 	attempts, ok := msg.Headers["x-delivery-count"]
 	if !ok {
-		attempts = 0
+		attempts = int64(0)
 	}
 
-	if attempts.(int) >= r.config.MaxRetries {
+	logger.Info().Msgf("message has been attempted %d times", attempts.(int64))
+
+	if attempts.(int64) >= int64(r.config.MaxRetries) {
+		logger.Info().Msg("message has reached max retries")
 		// We should stop processing the message
 		err := msg.Nack(false, false)
 		if err != nil {
@@ -34,8 +37,8 @@ func (r *rabbitmqConsumer) retryBackoff(msg amqp.Delivery, logger *zerolog.Logge
 	backOff.MaxInterval = r.config.MaxInterval
 
 	interval := backOff.NextBackOff()
-	for i := 0; i < attempts.(int); i++ {
-		backOff.NextBackOff()
+	for i := 0; int64(i) < attempts.(int64); i++ {
+		interval = backOff.NextBackOff()
 	}
 
 	if interval == backoff.Stop {
