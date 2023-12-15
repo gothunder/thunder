@@ -13,6 +13,8 @@ const (
 
 	// Deliver this message to a different worker.
 	Retry
+
+	RetryBackoff
 )
 
 type EventDecoder interface {
