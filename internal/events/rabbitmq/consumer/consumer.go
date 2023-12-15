@@ -20,6 +20,9 @@ type rabbitmqConsumer struct {
 
 	// Wait group used to wait for all the consumer handlers to finish
 	wg *sync.WaitGroup
+
+	// Wait group used to wait for all the backoff handlers to finish
+	backoffWg *sync.WaitGroup
 }
 
 func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsumer, error) {

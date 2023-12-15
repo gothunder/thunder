@@ -41,6 +41,9 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to requeue message")
 			}
+		case events.RetryBackoff:
+			// We should send to a go routine that will requeue the message after a backoff time
+			go r.retryBackoff(msg, &logger)
 		default:
 			// We should stop processing the message
 			err := msg.Nack(false, true)

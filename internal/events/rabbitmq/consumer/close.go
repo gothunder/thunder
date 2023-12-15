@@ -34,6 +34,7 @@ func (r *rabbitmqConsumer) waitOrTimeout(ctx context.Context) error {
 	go func() {
 		defer close(waitChannel)
 		r.wg.Wait()
+		r.backoffWg.Wait()
 	}()
 
 	select {
