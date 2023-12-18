@@ -49,8 +49,8 @@ It takes the following parameters:
 It returns a pointer to the formatted message object and any error encountered.
 if the match fails, nil is returned.
 */
-func MatchTopicAndFormatsMessage[T interface{}](
-	ctx context.Context,
+func MatchTopicAndFormatsMessage[T any](
+	_ context.Context,
 	decoder EventDecoder,
 	referenceTopic string,
 	topic string,
