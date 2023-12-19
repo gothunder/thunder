@@ -14,13 +14,13 @@ type ErrorMap map[roxy.MessageAction]HandlerResponse
 var (
 	defaultErrorMap = ErrorMap{
 		roxy.SuccessMessageAction: Success,
-		roxy.DropMessageAction:    DeadLetter,
+		roxy.DropMessageAction:    Success,
 		roxy.RequeueMessageAction: Retry,
 	}
 
 	retryBackoffErrorMap = ErrorMap{
 		roxy.SuccessMessageAction: Success,
-		roxy.DropMessageAction:    DeadLetter,
+		roxy.DropMessageAction:    Success,
 		roxy.RequeueMessageAction: RetryBackoff,
 	}
 )
