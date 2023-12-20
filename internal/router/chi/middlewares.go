@@ -36,16 +36,15 @@ func requestDumpMiddleware() func(http.Handler) http.Handler {
 
 			var strBody string
 
-			body, err := r.GetBody()
+			body := r.Body
+			bytesBody, err := io.ReadAll(body)
 			if err != nil {
-				strBody = fmt.Sprintf("error getting body: %s", err.Error())
+				strBody = fmt.Sprintf("error reading body: %s", err.Error())
 			} else {
-				bytesBody, err := io.ReadAll(body)
-				if err != nil {
-					strBody = fmt.Sprintf("error reading body: %s", err.Error())
-				} else {
-					strBody = string(bytesBody)
-				}
+				// Rewrites body to allow for further reading
+				r.Body = io.NopCloser(bytes.NewBuffer(bytesBody))
+
+				strBody = string(bytesBody)
 			}
 
 			logger := zlog.Ctx(r.Context())
