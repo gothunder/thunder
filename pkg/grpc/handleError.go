@@ -55,6 +55,11 @@ func HandleGrpcErrorIgnoringNotFound(ctx context.Context, err error) error {
 				Message: "internal error",
 				Status:  http.StatusInternalServerError,
 			}))
+		case codes.AlreadyExists:
+			return thunderGraphql.HandleError(ctx, roxy.SetDefaultHTTPResponse(err, roxy.HTTPResponse{
+				Message: statusCode.Message(),
+				Status:  http.StatusConflict,
+			}))
 		default:
 			return thunderGraphql.HandleError(ctx, roxy.SetDefaultHTTPResponse(err, roxy.HTTPResponse{
 				Message: "internal error",
@@ -113,6 +118,11 @@ func HandleGrpcError(ctx context.Context, err error) error {
 			return thunderGraphql.HandleError(ctx, roxy.SetDefaultHTTPResponse(err, roxy.HTTPResponse{
 				Message: "internal error",
 				Status:  http.StatusInternalServerError,
+			}))
+		case codes.AlreadyExists:
+			return thunderGraphql.HandleError(ctx, roxy.SetDefaultHTTPResponse(err, roxy.HTTPResponse{
+				Message: statusCode.Message(),
+				Status:  http.StatusConflict,
 			}))
 		default:
 			return thunderGraphql.HandleError(ctx, roxy.SetDefaultHTTPResponse(err, roxy.HTTPResponse{
