@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
 )
 
@@ -14,6 +15,7 @@ func aroundOperations(ctx context.Context, next graphql.OperationHandler) graphq
 	logger := log.Ctx(ctx)
 	logger.Info().
 		Str("operation", oc.RawQuery).
+		Str("requestID", middleware.GetReqID(ctx)).
 		Msg("processing request")
 
 	start := time.Now()
