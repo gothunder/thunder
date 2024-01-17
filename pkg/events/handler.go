@@ -61,7 +61,7 @@ func MatchTopicAndFormatsMessage[T any](
 	var err error
 
 	match, err = regexp.MatchString(referenceTopic, topic)
-	err = roxy.Wrap(err, "Failed to match payment status topic string")
+	err = roxy.Wrap(err, "Failed to match topic")
 	if err != nil {
 		return nil, err
 	}
