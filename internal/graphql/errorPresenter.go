@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -17,11 +18,15 @@ func errorPresenter(ctx context.Context, err error) *gqlerror.Error {
 			return gqlErr
 		}
 	}
-
 	requestID := middleware.GetReqID(ctx)
 
+	lvl := zerolog.PanicLevel
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		lvl = zerolog.ErrorLevel
+	}
+
 	logger := log.Ctx(ctx).With().Stack().Logger()
-	logger.WithLevel(zerolog.PanicLevel).
+	logger.WithLevel(lvl).
 		Err(err).
 		Str("requestID", requestID).
 		Msg("response not provided")
