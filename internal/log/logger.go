@@ -34,6 +34,8 @@ func NewLogger(output io.Writer) *zerolog.Logger {
 
 	logger := zerolog.
 		New(output).
+		Hook(TracingHook{}).
+		Hook(CorrelationIDHook{}).
 		With().
 		Timestamp().
 		Logger()

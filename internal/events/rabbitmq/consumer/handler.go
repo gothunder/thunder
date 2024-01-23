@@ -6,18 +6,35 @@ import (
 	"encoding/json"
 	"fmt"
 
+	thunderContext "github.com/gothunder/thunder/pkg/context"
 	"github.com/gothunder/thunder/pkg/events"
+	"github.com/gothunder/thunder/pkg/events/metadata"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
 	"github.com/vmihailenco/msgpack/v5"
+	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Handler) {
 	for msg := range msgs {
+		ctx := r.tracePropagator.ExtractTrace(context.Background(), &msg)
+		ctx, span := r.tracer.Start(ctx, "rabbitmqConsumer.handler",
+			trace.WithSpanKind(trace.SpanKindConsumer),
+			trace.WithAttributes(
+				semconv.MessagingSystem("rabbitmq"),
+				semconv.MessagingRabbitmqDestinationRoutingKey(msg.RoutingKey),
+				semconv.MessagingOperationReceive,
+			),
+		)
+
 		logger := r.logger.With().
 			Str("topic", msg.RoutingKey).Logger()
-		ctx := logger.WithContext(context.Background())
+		ctx = logger.WithContext(ctx)
+		ctx = ctxWithMsgID(msg)
+		ctx = ctxWithCorrID(msg)
 
 		var decoder events.EventDecoder
 		if msg.ContentType == "application/msgpack" {
@@ -33,24 +50,31 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			// Message was successfully processed
 			err := msg.Ack(false)
 			if err != nil {
-				logger.Error().Err(err).Msg("failed to ack message")
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "failed to ack message")
+				logger.Error().Err(err).Ctx(ctx).Msg("failed to ack message")
 			}
 		case events.DeadLetter:
 			// We should retry to process the message on a different worker
 			err := msg.Nack(false, false)
 			if err != nil {
-				logger.Error().Err(err).Msg("failed to requeue message")
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "failed to nack message")
+				logger.Error().Err(err).Ctx(ctx).Msg("failed to requeue message")
 			}
 		case events.RetryBackoff:
 			// We should send to a go routine that will requeue the message after a backoff time
-			go r.retryBackoff(msg, &logger)
+			go r.retryBackoff(ctx, msg)
 		default:
 			// We should stop processing the message
 			err := msg.Nack(false, true)
 			if err != nil {
-				logger.Error().Err(err).Msg("failed to discard message")
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "failed to nack message")
+				logger.Error().Err(err).Ctx(ctx).Msg("failed to discard message")
 			}
 		}
+		span.End()
 	}
 }
 
@@ -75,4 +99,34 @@ func (r *rabbitmqConsumer) handleWithRecoverer(ctx context.Context, handler even
 	}()
 
 	return handler.Handle(ctx, topic, decoder)
+}
+
+func idFromMessage(msg amqp.Delivery) string {
+	if msgID, ok := msg.Headers[metadata.ThunderIDMetadataKey]; ok && msgID != nil {
+		if msgIDStr, ok := msgID.(string); ok {
+			return msgIDStr
+		}
+	}
+
+	return ""
+}
+
+func ctxWithMsgID(msg amqp.Delivery) context.Context {
+	msgID := idFromMessage(msg)
+	return thunderContext.ContextWithMessageID(context.Background(), msgID)
+}
+
+func corrIdFromMessage(msg amqp.Delivery) string {
+	if corrID, ok := msg.Headers[metadata.ThunderCorrelationIDMetadataKey]; ok && corrID != nil {
+		if corrIDStr, ok := corrID.(string); ok {
+			return corrIDStr
+		}
+	}
+
+	return ""
+}
+
+func ctxWithCorrID(msg amqp.Delivery) context.Context {
+	corrID := corrIdFromMessage(msg)
+	return thunderContext.ContextWithCorrelationID(context.Background(), corrID)
 }

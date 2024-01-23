@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -17,6 +18,9 @@ func NewServer(logger *zerolog.Logger) *BareServer {
 	grpcServer := &BareServer{}
 
 	sv := grpc.NewServer(
+		grpc.StatsHandler(
+			otelgrpc.NewServerHandler(),
+		),
 		grpc.UnaryInterceptor(
 			grpcLoggerInterceptor(logger),
 		),

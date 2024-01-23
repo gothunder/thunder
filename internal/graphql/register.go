@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/gothunder/thunder/internal/recoverer"
+	"github.com/ravilushqa/otelgqlgen"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
@@ -25,6 +26,9 @@ func CreateHandler(graphQLSchema graphql.ExecutableSchema) *handler.Server {
 
 	// Add a middleware to log the request
 	graphqlHandler.AroundOperations(aroundOperations)
+
+	// Add otel middleware
+	graphqlHandler.Use(otelgqlgen.Middleware())
 
 	return graphqlHandler
 }
