@@ -9,7 +9,7 @@ import (
 
 const (
 	opLabel          = "op"
-	op               = "thunder.outbox.storer.Store"
+	opStore          = "thunder.outbox.storer.Store"
 	latencyLabel     = "latency"
 	messagesNumLabel = "messages_num"
 )
@@ -21,16 +21,16 @@ type withLoggingStorer struct {
 // Store implements Storer.
 func (wts withLoggingStorer) Store(ctx context.Context, tx interface{}, messages []Message) error {
 	logger := zerolog.Ctx(ctx)
-	logger.Debug().Str(opLabel, op).Msg("starting storing messages")
+	logger.Debug().Str(opLabel, opStore).Msg("starting storing messages")
 
 	start := time.Now()
 
 	defer func() {
-		logger.Debug().Str(opLabel, op).Msg("finished storing messages")
+		logger.Debug().Str(opLabel, opStore).Msg("finished storing messages")
 		logger.
 			Info().
 			Dur(latencyLabel, time.Since(start)).
-			Str(opLabel, op).
+			Str(opLabel, opStore).
 			Int(messagesNumLabel, len(messages)).
 			Msg("messages stored")
 	}()

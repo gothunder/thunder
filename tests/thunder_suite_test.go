@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gothunder/thunder/tests/entInit"
+	"github.com/gothunder/thunder/internal/events/outbox/ent/entInit"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

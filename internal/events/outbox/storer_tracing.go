@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	SpanNameStore = "thunder.outbox.storer.Store"
-	TracerName    = "thunder.outbox.storer"
+	SpanNameStore    = "thunder.outbox.storer.Store"
+	TracerNameStorer = "thunder.outbox.storer"
 )
 
 type withTracingStorer struct {
@@ -52,5 +52,5 @@ func WrapStorerWithTracing(next Storer) Storer {
 			propagation.TraceContext{},
 			propagation.Baggage{},
 		),
-		tracer: otel.Tracer(TracerName)}
+		tracer: otel.Tracer(TracerNameStorer)}
 }
