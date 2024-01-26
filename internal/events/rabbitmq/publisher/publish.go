@@ -12,6 +12,7 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
@@ -29,7 +30,7 @@ type message struct {
 // The message is published asynchronously
 // The message will be republished if the connection is lost
 func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload interface{}) error {
-	ctx, span := r.tracer.Start(ctx, "rabbitmqPublisher.Publish",
+	ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqPublisher.Publish",
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(
 			semconv.MessagingSystem("rabbitmq"),

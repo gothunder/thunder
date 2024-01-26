@@ -13,6 +13,7 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
 	"github.com/vmihailenco/msgpack/v5"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
@@ -21,20 +22,20 @@ import (
 func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Handler) {
 	for msg := range msgs {
 		ctx := r.tracePropagator.ExtractTrace(context.Background(), &msg)
-		ctx, span := r.tracer.Start(ctx, "rabbitmqConsumer.handler",
+		ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqConsumer.handler",
 			trace.WithSpanKind(trace.SpanKindConsumer),
 			trace.WithAttributes(
 				semconv.MessagingSystem("rabbitmq"),
 				semconv.MessagingRabbitmqDestinationRoutingKey(msg.RoutingKey),
-				semconv.MessagingOperationReceive,
+				semconv.MessagingOperationProcess,
 			),
 		)
 
 		logger := r.logger.With().
 			Str("topic", msg.RoutingKey).Logger()
 		ctx = logger.WithContext(ctx)
-		ctx = ctxWithMsgID(msg)
-		ctx = ctxWithCorrID(msg)
+		ctx = ctxWithMsgID(ctx, msg)
+		ctx = ctxWithCorrID(ctx, msg)
 
 		var decoder events.EventDecoder
 		if msg.ContentType == "application/msgpack" {
@@ -64,7 +65,8 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			}
 		case events.RetryBackoff:
 			// We should send to a go routine that will requeue the message after a backoff time
-			go r.retryBackoff(ctx, msg)
+			msgcopy := msg
+			go r.retryBackoff(ctx, msgcopy)
 		default:
 			// We should stop processing the message
 			err := msg.Nack(false, true)
@@ -111,9 +113,9 @@ func idFromMessage(msg amqp.Delivery) string {
 	return ""
 }
 
-func ctxWithMsgID(msg amqp.Delivery) context.Context {
+func ctxWithMsgID(ctx context.Context, msg amqp.Delivery) context.Context {
 	msgID := idFromMessage(msg)
-	return thunderContext.ContextWithMessageID(context.Background(), msgID)
+	return thunderContext.ContextWithMessageID(ctx, msgID)
 }
 
 func corrIdFromMessage(msg amqp.Delivery) string {
@@ -126,7 +128,7 @@ func corrIdFromMessage(msg amqp.Delivery) string {
 	return ""
 }
 
-func ctxWithCorrID(msg amqp.Delivery) context.Context {
+func ctxWithCorrID(ctx context.Context, msg amqp.Delivery) context.Context {
 	corrID := corrIdFromMessage(msg)
-	return thunderContext.ContextWithCorrelationID(context.Background(), corrID)
+	return thunderContext.ContextWithCorrelationID(ctx, corrID)
 }

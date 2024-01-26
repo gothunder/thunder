@@ -10,5 +10,8 @@ type CorrelationIDHook struct{}
 
 func (h CorrelationIDHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	ctx := e.GetCtx()
-	e.Str("correlation-id", thunderContext.CorrelationIDFromContext(ctx))
+	correlationID := thunderContext.CorrelationIDFromContext(ctx)
+	if correlationID != "" {
+		e.Str("correlation-id", correlationID)
+	}
 }

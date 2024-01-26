@@ -9,9 +9,9 @@ import (
 	"github.com/gothunder/thunder/pkg/events"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
+
+const scope = "github.com/gothunder/thunder/internal/events/rabbitmq/publisher"
 
 type rabbitmqPublisher struct {
 	// Customizable fields
@@ -40,7 +40,6 @@ type rabbitmqPublisher struct {
 	notifyPublishChan chan amqp.Confirmation
 
 	// tracing
-	tracer          trace.Tracer
 	tracePropagator *tracing.AmqpTracePropagator
 }
 
@@ -73,8 +72,7 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 		notifyReturnChan:  make(chan amqp.Return),
 		notifyPublishChan: make(chan amqp.Confirmation),
 
-		tracer:          otel.Tracer("thunder-message-publisher-tracer"),
-		tracePropagator: tracing.NewAmqpTracing(),
+		tracePropagator: tracing.NewAmqpTracing(log),
 	}
 	publisher.publisherFunc = publisher.publishMessage
 

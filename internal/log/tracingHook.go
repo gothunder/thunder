@@ -16,6 +16,5 @@ func (h TracingHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	spanID := spanContext.SpanID().String()
 	traceID := spanContext.TraceID().String()
 
-	e.Str("trace-id", traceID)
-	e.Str("span-id", spanID)
+	e.Str("trace-id", traceID).Str("span-id", spanID)
 }

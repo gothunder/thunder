@@ -2,6 +2,6 @@ package outboxpublisher
 
 import "context"
 
-func (r *rabbitmqOutboxPublisher) Close(ctx context.Context) error {
+func (r *rabbitmqOutboxPublisher[T]) Close(ctx context.Context) error {
 	return r.msgForwarder.Close()
 }

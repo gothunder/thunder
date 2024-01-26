@@ -9,13 +9,14 @@ import (
 	"github.com/google/uuid"
 	thunderContext "github.com/gothunder/thunder/pkg/context"
 	"github.com/gothunder/thunder/pkg/events/metadata"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
-func (r *rabbitmqOutboxPublisher) Publish(ctx context.Context, topic string, payload interface{}) (err error) {
-	ctx, span := r.tracer.Start(ctx, "rabbitmqPublisher.Publish",
+func (r *rabbitmqOutboxPublisher[T]) Publish(ctx context.Context, topic string, payload interface{}) (err error) {
+	tctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqPublisher.Publish",
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(
 			semconv.MessagingSystem("rabbitmq"),
@@ -31,8 +32,9 @@ func (r *rabbitmqOutboxPublisher) Publish(ctx context.Context, topic string, pay
 		span.End()
 	}()
 
-	publisherFactory := r.outboxPublisherFactoryCtxExtractor(ctx)
-	if publisherFactory == nil {
+	publisherFactory := r.outboxPublisherFactoryCtxExtractor(tctx)
+	var zeroValue T
+	if publisherFactory == zeroValue {
 		return roxy.New("Outbox publisher factory not found in context. Make sure it is running inside a transaction")
 	}
 
@@ -47,10 +49,10 @@ func (r *rabbitmqOutboxPublisher) Publish(ctx context.Context, topic string, pay
 	}
 	msg := message.NewMessage(uuid.NewString(), body)
 	msg.Metadata.Set(metadata.ThunderIDMetadataKey, msg.UUID)
-	msg.Metadata.Set(metadata.ThunderCorrelationIDMetadataKey, thunderContext.CorrelationIDFromContext(ctx))
-	msg.SetContext(ctx)
+	msg.Metadata.Set(metadata.ThunderCorrelationIDMetadataKey, thunderContext.CorrelationIDFromContext(tctx))
+	msg.SetContext(tctx)
 
-	err = outboxPublisher.Publish(topic, r.tracePropagator.WithTrace(ctx, msg))
+	err = outboxPublisher.Publish(topic, r.tracePropagator.WithTrace(tctx, msg))
 	if err != nil {
 		return roxy.Wrap(err, "failed to publish message")
 	}

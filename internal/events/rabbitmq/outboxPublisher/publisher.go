@@ -9,50 +9,52 @@ import (
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
 
-type rabbitmqOutboxPublisher struct {
+type rabbitmqOutboxPublisher[T OutboxPublisherFactory] struct {
 	outPublisher message.Publisher
 	msgForwarder *forwarder.Forwarder
 
-	outboxPublisherFactoryCtxExtractor OutboxPublisherFactoryCtxExtractor
+	outboxPublisherFactoryCtxExtractor OutboxPublisherFactoryCtxExtractor[T]
 
 	// tracing
-	tracer          trace.Tracer
 	tracePropagator *tracing.WatermillTracePropagator
 }
 
+const scope = "github.com/gothunder/thunder/internal/events/rabbitmq/outboxPublisher"
+
 type ForwarderFactory interface {
-	Forwarder(consumerGroup string, outPublisher message.Publisher) *forwarder.Forwarder
+	Forwarder(consumerGroup string, outPublisher message.Publisher) (*forwarder.Forwarder, error)
 }
 
 type OutboxPublisherFactory interface {
+	comparable
 	OutboxPublisher() (message.Publisher, error)
 }
 
-type OutboxPublisherFactoryCtxExtractor func(ctx context.Context) OutboxPublisherFactory
+type OutboxPublisherFactoryCtxExtractor[T OutboxPublisherFactory] func(ctx context.Context) T
 
-func NewRabbitMQOutboxPublisher(
+func NewRabbitMQOutboxPublisher[T OutboxPublisherFactory](
 	logger *zerolog.Logger,
 	forwarderFactory ForwarderFactory,
-	outboxPublisherFactoryCtxExtractor OutboxPublisherFactoryCtxExtractor,
+	outboxPublisherFactoryCtxExtractor OutboxPublisherFactoryCtxExtractor[T],
 ) (events.EventPublisher, error) {
 	outPublisher, err := newRabbitMQOutPublisher(logger)
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to create out publisher")
 	}
 
-	msgForwarder := forwarderFactory.Forwarder("default", outPublisher)
+	msgForwarder, err := forwarderFactory.Forwarder("default", outPublisher)
+	if err != nil {
+		return nil, eris.Wrap(err, "failed to create forwarder")
+	}
 
-	return &rabbitmqOutboxPublisher{
+	return &rabbitmqOutboxPublisher[T]{
 		outPublisher: outPublisher,
 		msgForwarder: msgForwarder,
 
 		outboxPublisherFactoryCtxExtractor: outboxPublisherFactoryCtxExtractor,
 
-		tracer:          otel.Tracer("thunder-message-publisher-tracer"),
 		tracePropagator: tracing.NewWatermillTracePropagator(),
 	}, nil
 }

@@ -9,9 +9,9 @@ import (
 	"github.com/gothunder/thunder/pkg/events"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
+
+const scope = "github.com/gothunder/thunder/internal/events/rabbitmq/consumer"
 
 type rabbitmqConsumer struct {
 	// Customizable fields
@@ -28,7 +28,6 @@ type rabbitmqConsumer struct {
 	backoffWg *sync.WaitGroup
 
 	// tracing
-	tracer          trace.Tracer
 	tracePropagator *tracing.AmqpTracePropagator
 }
 
@@ -49,8 +48,7 @@ func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsume
 		wg:        &sync.WaitGroup{},
 		backoffWg: &sync.WaitGroup{},
 
-		tracer:          otel.Tracer("thunder-message-consumer-tracer"),
-		tracePropagator: tracing.NewAmqpTracing(),
+		tracePropagator: tracing.NewAmqpTracing(log),
 	}
 
 	return &consumer, nil

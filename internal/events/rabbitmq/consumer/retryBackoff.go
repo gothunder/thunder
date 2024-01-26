@@ -7,6 +7,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -15,8 +16,7 @@ import (
 func (r *rabbitmqConsumer) retryBackoff(ctx context.Context, msg amqp.Delivery) {
 	r.backoffWg.Add(1)
 	defer r.backoffWg.Done()
-
-	ctx, span := r.tracer.Start(ctx, "rabbitmqConsumer.retryBackoff",
+	ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqConsumer.retryBackoff",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
