@@ -9,6 +9,7 @@ import (
 	thunderContext "github.com/gothunder/thunder/pkg/context"
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/gothunder/thunder/pkg/events/metadata"
+	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
@@ -19,32 +20,34 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const (
+	topicHeaderKey = "x-thunder-topic"
+)
+
 func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Handler) {
 	for msg := range msgs {
+		// in case of requeue backoff, we want to make sure we have the correct topic
+		topic := extractTopic(msg)
+		// we always inject the correct topic so the requeue backoff can work
+		injectTopic(&msg, topic)
+
 		ctx := r.tracePropagator.ExtractTrace(context.Background(), &msg)
 		ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqConsumer.handler",
 			trace.WithSpanKind(trace.SpanKindConsumer),
 			trace.WithAttributes(
 				semconv.MessagingSystem("rabbitmq"),
-				semconv.MessagingRabbitmqDestinationRoutingKey(msg.RoutingKey),
+				semconv.MessagingRabbitmqDestinationRoutingKey(topic),
 				semconv.MessagingOperationProcess,
 			),
 		)
 
-		logger := r.logger.With().
-			Str("topic", msg.RoutingKey).Logger()
+		logger := r.logger.With().Str("topic", topic).Logger()
 		ctx = logger.WithContext(ctx)
 		ctx = ctxWithMsgID(ctx, msg)
 		ctx = ctxWithCorrID(ctx, msg)
 
-		var decoder events.EventDecoder
-		if msg.ContentType == "application/msgpack" {
-			decoder = msgpack.NewDecoder(bytes.NewReader(msg.Body))
-		} else {
-			decoder = json.NewDecoder(bytes.NewReader(msg.Body))
-		}
-
-		res := r.handleWithRecoverer(ctx, handler, msg.RoutingKey, decoder)
+		decoder := newDecoder(msg)
+		res := r.handleWithRecoverer(ctx, handler, topic, decoder)
 
 		switch res {
 		case events.Success:
@@ -65,8 +68,7 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			}
 		case events.RetryBackoff:
 			// We should send to a go routine that will requeue the message after a backoff time
-			msgcopy := msg
-			go r.retryBackoff(ctx, msgcopy)
+			go r.retryBackoff(ctx, msg)
 		default:
 			// We should stop processing the message
 			err := msg.Nack(false, true)
@@ -131,4 +133,33 @@ func corrIdFromMessage(msg amqp.Delivery) string {
 func ctxWithCorrID(ctx context.Context, msg amqp.Delivery) context.Context {
 	corrID := corrIdFromMessage(msg)
 	return thunderContext.ContextWithCorrelationID(ctx, corrID)
+}
+
+// extractTopic extracts the topic from the message.
+// It looks at the headers first, then the routing key.
+func extractTopic(msg amqp091.Delivery) string {
+	if headerTopic, ok := msg.Headers[topicHeaderKey]; ok {
+		return headerTopic.(string)
+	}
+
+	return msg.RoutingKey
+}
+
+// injectTopic injects the topic into the message headers.
+func injectTopic(msg *amqp091.Delivery, topic string) {
+	if msg.Headers == nil {
+		msg.Headers = make(amqp.Table)
+	}
+
+	msg.Headers[topicHeaderKey] = topic
+}
+
+// newDecoder creates a new decoder given the message.
+// It looks at the content type to determine the decoder with fallback to json.
+func newDecoder(msg amqp091.Delivery) events.EventDecoder {
+	if msg.ContentType == "application/msgpack" {
+		return msgpack.NewDecoder(bytes.NewReader(msg.Body))
+	}
+
+	return json.NewDecoder(bytes.NewReader(msg.Body))
 }
