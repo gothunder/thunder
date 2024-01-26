@@ -7,26 +7,29 @@ import (
 	"fmt"
 
 	"github.com/gothunder/thunder/pkg/events"
+	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
+const (
+	topicHeaderKey = "x-thunder-topic"
+)
+
 func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Handler) {
 	for msg := range msgs {
-		logger := r.logger.With().
-			Str("topic", msg.RoutingKey).Logger()
+		// in case of requeue backoff, we want to make sure we have the correct topic
+		topic := extractTopic(msg)
+		// we always inject the correct topic so the requeue backoff can work
+		injectTopic(&msg, topic)
+
+		logger := r.logger.With().Str("topic", topic).Logger()
 		ctx := logger.WithContext(context.Background())
 
-		var decoder events.EventDecoder
-		if msg.ContentType == "application/msgpack" {
-			decoder = msgpack.NewDecoder(bytes.NewReader(msg.Body))
-		} else {
-			decoder = json.NewDecoder(bytes.NewReader(msg.Body))
-		}
-
-		res := r.handleWithRecoverer(ctx, handler, msg.RoutingKey, decoder)
+		decoder := newDecoder(msg)
+		res := r.handleWithRecoverer(ctx, handler, topic, decoder)
 
 		switch res {
 		case events.Success:
@@ -75,4 +78,33 @@ func (r *rabbitmqConsumer) handleWithRecoverer(ctx context.Context, handler even
 	}()
 
 	return handler.Handle(ctx, topic, decoder)
+}
+
+// extractTopic extracts the topic from the message.
+// It looks at the headers first, then the routing key.
+func extractTopic(msg amqp091.Delivery) string {
+	if headerTopic, ok := msg.Headers[topicHeaderKey]; ok {
+		return headerTopic.(string)
+	}
+
+	return msg.RoutingKey
+}
+
+// injectTopic injects the topic into the message headers.
+func injectTopic(msg *amqp091.Delivery, topic string) {
+	if msg.Headers == nil {
+		msg.Headers = make(amqp.Table)
+	}
+
+	msg.Headers[topicHeaderKey] = topic
+}
+
+// newDecoder creates a new decoder given the message.
+// It looks at the content type to determine the decoder with fallback to json.
+func newDecoder(msg amqp091.Delivery) events.EventDecoder {
+	if msg.ContentType == "application/msgpack" {
+		return msgpack.NewDecoder(bytes.NewReader(msg.Body))
+	}
+
+	return json.NewDecoder(bytes.NewReader(msg.Body))
 }
