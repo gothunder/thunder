@@ -6,7 +6,7 @@ require (
 	entgo.io/ent v0.12.4
 	github.com/99designs/gqlgen v0.17.24
 	github.com/TheRafaBonin/roxy v0.6.1
-	github.com/cenkalti/backoff/v4 v4.2.0
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/uuid v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.16
