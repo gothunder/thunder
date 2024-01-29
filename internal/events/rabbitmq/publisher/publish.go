@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const confirmTimeout = 5 * time.Second
+const confirmTimeout = 10 * time.Second
 
 type message struct {
 	Context context.Context
@@ -80,8 +80,16 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	}
 
 	// Wait for confirmation. Timeouts after confirmTimeout seconds.
-	confirmed := deferredConfirmation.Wait()
+	confirmed, err := deferredConfirmation.WaitContext(ctx)
 	cancel()
+	if err != nil {
+		log.Ctx(msg.Context).Error().Err(err).Msg("error on confirming publish, retrying")
+
+		// If we timed out, we need to re-publish the event. We don't pause publisher in this circunstances
+		// because it may be a temporary issue with a leader node and the connection is still up
+		r.unpublishedMessages <- msg
+		return
+	}
 	if !confirmed {
 		log.Ctx(msg.Context).Error().Msg("failed to confirm publish, retrying")
 
