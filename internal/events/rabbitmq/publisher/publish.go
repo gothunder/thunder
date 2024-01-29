@@ -31,13 +31,14 @@ type message struct {
 // The message will be republished if the connection is lost
 func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload interface{}) error {
 	ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqPublisher.Publish",
-		trace.WithSpanKind(trace.SpanKindProducer),
+		trace.WithSpanKind(trace.SpanKindInternal),
 		trace.WithAttributes(
 			semconv.MessagingSystem("rabbitmq"),
 			semconv.MessagingRabbitmqDestinationRoutingKey(topic),
 			semconv.MessagingOperationPublish,
 		),
 	)
+	defer span.End()
 
 	// We want to keep track of the messages being published
 	r.wg.Add(1)
@@ -55,7 +56,7 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 	r.unpublishedMessages <- message{
 		Context: ctx,
 		Topic:   topic,
-		Message: *r.tracePropagator.WithTrace(ctx, &amqp091.Publishing{
+		Message: amqp091.Publishing{
 			ContentType:  "application/json",
 			DeliveryMode: amqp091.Persistent,
 			Body:         body,
@@ -63,7 +64,7 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 				metadata.ThunderIDMetadataKey:            uuid.NewString(),
 				metadata.ThunderCorrelationIDMetadataKey: thunderContext.CorrelationIDFromContext(ctx),
 			},
-		}),
+		},
 	}
 
 	return nil
@@ -72,7 +73,15 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 func (r *rabbitmqPublisher) publishMessage(msg message) {
 	// We'll timeout the publish after confirmTimeout seconds and consider as failed
 	ctx, cancel := context.WithTimeout(context.Background(), confirmTimeout)
-	span := trace.SpanFromContext(msg.Context)
+	_, span := otel.Tracer(scope).Start(msg.Context, "rabbitmqPublisher.publishMessage",
+		trace.WithSpanKind(trace.SpanKindProducer),
+		trace.WithAttributes(
+			semconv.MessagingSystem("rabbitmq"),
+			semconv.MessagingRabbitmqDestinationRoutingKey(msg.Topic),
+			semconv.MessagingOperationPublish,
+		),
+	)
+	defer span.End()
 
 	// Actual publish.
 	deferredConfirmation, err := r.chManager.Channel.PublishWithDeferredConfirmWithContext(
@@ -81,10 +90,11 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 		msg.Topic,
 		true,
 		false,
-		msg.Message,
+		*r.tracePropagator.WithTrace(ctx, &msg.Message),
 	)
 	if err != nil {
 		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to publish message")
 		log.Ctx(msg.Context).Error().Err(err).Msg("failed to publish event, retrying")
 
 		// If we failed to publish, it means that the connection is down.
@@ -106,17 +116,19 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	}
 
 	// Wait for confirmation. Timeouts after confirmTimeout seconds.
-	confirmed := deferredConfirmation.Wait()
+	confirmed, err := deferredConfirmation.WaitContext(ctx)
+	if err != nil {
+	}
 	cancel()
 	if !confirmed {
 		span.RecordError(errors.New("failed to confirm publish"))
+		span.SetStatus(codes.Error, "failed to confirm publish")
 		log.Ctx(msg.Context).Error().Msg("failed to confirm publish, retrying")
 
 		// If we didn't get confirmation, we need to re-publish the event.
 		r.unpublishedMessages <- msg
 		return
 	}
-	defer span.End()
 
 	log.Ctx(msg.Context).Info().Str("topic", msg.Topic).Msg("message published")
 	r.wg.Done()
