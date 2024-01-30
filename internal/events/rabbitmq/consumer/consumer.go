@@ -5,10 +5,13 @@ import (
 
 	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/gothunder/thunder/internal/events/rabbitmq/manager"
+	"github.com/gothunder/thunder/internal/events/rabbitmq/tracing"
 	"github.com/gothunder/thunder/pkg/events"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
 )
+
+const scope = "github.com/gothunder/thunder/internal/events/rabbitmq/consumer"
 
 type rabbitmqConsumer struct {
 	// Customizable fields
@@ -23,6 +26,9 @@ type rabbitmqConsumer struct {
 
 	// Wait group used to wait for all the backoff handlers to finish
 	backoffWg *sync.WaitGroup
+
+	// tracing
+	tracePropagator *tracing.AmqpTracePropagator
 }
 
 func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsumer, error) {
@@ -41,6 +47,8 @@ func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsume
 
 		wg:        &sync.WaitGroup{},
 		backoffWg: &sync.WaitGroup{},
+
+		tracePropagator: tracing.NewAmqpTracing(log),
 	}
 
 	return &consumer, nil

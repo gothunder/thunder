@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	outboxpublisher "github.com/gothunder/thunder/internal/events/rabbitmq/outboxPublisher"
 	"github.com/gothunder/thunder/internal/events/rabbitmq/publisher"
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/rabbitmq/amqp091-go"
@@ -28,12 +29,30 @@ func provideRabbitMQPublisher(logger *zerolog.Logger, s fx.Shutdowner) events.Ev
 	return publisher
 }
 
+func provideRabbitMQOutboxPublisher[T outboxpublisher.OutboxPublisherFactory](
+	logger *zerolog.Logger,
+	s fx.Shutdowner,
+	forwardFactory outboxpublisher.ForwarderFactory,
+	outboxPublisherFactoryCtxExtractor outboxpublisher.OutboxPublisherFactoryCtxExtractor[T],
+) events.EventPublisher {
+	publisher, err := outboxpublisher.NewRabbitMQOutboxPublisher(logger, forwardFactory, outboxPublisherFactoryCtxExtractor)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to create publisher")
+		err = s.Shutdown()
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to shutdown")
+		}
+	}
+
+	return publisher
+}
+
 func startPublisher(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, publisher events.EventPublisher) {
 	lc.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				go func() {
-					err := publisher.StartPublisher(ctx)
+					err := publisher.StartPublisher(context.Background())
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to start publisher")
 						err = s.Shutdown()
@@ -73,3 +92,23 @@ var PublisherModule = fx.Options(
 	fx.Provide(provideRabbitMQPublisher),
 	fx.Invoke(startPublisher),
 )
+
+func OutboxPublisherModule[T outboxpublisher.OutboxPublisherFactory](
+	outboxPublisherFactoryCtxExtractor outboxpublisher.OutboxPublisherFactoryCtxExtractor[T],
+) fx.Option {
+	return fx.Options(
+		fx.Provide(provideRabbitMQOutboxPublisher[T]),
+		fx.Supply(outboxPublisherFactoryCtxExtractor),
+		fx.Invoke(startPublisher),
+	)
+}
+
+func UseForwarderFactory(factory interface{}) fx.Option {
+	return fx.Options(
+		fx.Provide(
+			fx.Annotate(func(client outboxpublisher.ForwarderFactory) outboxpublisher.ForwarderFactory {
+				return client
+			}, fx.From(factory)),
+		),
+	)
+}

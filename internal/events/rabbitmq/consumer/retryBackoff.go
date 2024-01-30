@@ -9,7 +9,11 @@ import (
 	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -18,19 +22,28 @@ const (
 	deliveryCountHeader = "x-delivery-count"
 )
 
-func (r *rabbitmqConsumer) retryBackoff(msg amqp.Delivery, logger *zerolog.Logger) {
+func (r *rabbitmqConsumer) retryBackoff(ctx context.Context, msg amqp.Delivery) {
 	r.backoffWg.Add(1)
 	defer r.backoffWg.Done()
+	ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqConsumer.retryBackoff",
+		trace.WithSpanKind(trace.SpanKindInternal),
+	)
+	defer span.End()
+
+	logger := log.Ctx(ctx).With().Stack().Ctx(ctx).Logger()
 
 	attempts := deliveryCount(msg)
 
 	logger.Info().Msgf("message has been attempted %d times", attempts)
+	span.SetAttributes(attribute.Key("message.attempts.count").Int64(attempts))
 
 	if attempts >= int64(r.config.MaxRetries) {
 		logger.Info().Msg("message has reached max retries")
 		// We should stop processing the message
 		err := msg.Nack(false, false)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to put message in dead letter queue")
 			logger.Error().Err(err).Msg("failed to put message in dead letter queue")
 			return
 		}
@@ -46,6 +59,8 @@ func (r *rabbitmqConsumer) retryBackoff(msg amqp.Delivery, logger *zerolog.Logge
 		logger.Info().Msg("backoff has reached max interval")
 		err := msg.Nack(false, false)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to put message in dead letter queue")
 			logger.Error().Err(err).Msg("failed to put message in dead letter queue")
 			return
 		}
@@ -57,8 +72,10 @@ func (r *rabbitmqConsumer) retryBackoff(msg amqp.Delivery, logger *zerolog.Logge
 	logger.Info().Msgf("requeueing message in %f seconds", interval.Seconds())
 	time.Sleep(interval)
 
-	err := requeue(r.chManager.Channel, r.config.QueueName, msg)
+	err := requeue(ctx, r.chManager.Channel, r.config.QueueName, msg)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to requeue message")
 		logger.Error().Err(err).Msg("failed to requeue message")
 		return
 	}
@@ -101,8 +118,7 @@ func currentInterval(backOff backoff.BackOff, attempts int64) time.Duration {
 	return interval
 }
 
-func requeue(channel *amqp091.Channel, queueName string, msg amqp.Delivery) error {
-	ctx := context.Background()
+func requeue(ctx context.Context, channel *amqp091.Channel, queueName string, msg amqp.Delivery) error {
 	ctx, cancel := context.WithTimeout(ctx, confirmTimeout)
 	defer cancel()
 

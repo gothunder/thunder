@@ -58,6 +58,7 @@ func (r *rabbitmqConsumer) queueDeclare(dlxName string) error {
 		amqp091.Table{
 			"x-queue-type":           "quorum",
 			"x-dead-letter-exchange": dlxName,
+			"x-queue-leader-locator": "balanced",
 		},
 	)
 	if err != nil {

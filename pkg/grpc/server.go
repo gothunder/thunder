@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
@@ -30,6 +31,9 @@ func NewServer(params NewServerParams) *BareServer {
 	)
 
 	sv := grpc.NewServer(
+		grpc.StatsHandler(
+			otelgrpc.NewServerHandler(),
+		),
 		grpc.ChainUnaryInterceptor(
 			params.Interceptors...,
 		),
