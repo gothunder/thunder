@@ -7,6 +7,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
 
@@ -14,15 +15,27 @@ type BareServer struct {
 	Server *grpc.Server
 }
 
-func NewServer(logger *zerolog.Logger) *BareServer {
+type NewServerParams struct {
+	fx.In
+
+	Logger       *zerolog.Logger
+	Interceptors []grpc.UnaryServerInterceptor `group:"interceptors"`
+}
+
+func NewServer(params NewServerParams) *BareServer {
 	grpcServer := &BareServer{}
+
+	params.Interceptors = append(
+		params.Interceptors,
+		grpcLoggerInterceptor(params.Logger),
+	)
 
 	sv := grpc.NewServer(
 		grpc.StatsHandler(
 			otelgrpc.NewServerHandler(),
 		),
-		grpc.UnaryInterceptor(
-			grpcLoggerInterceptor(logger),
+		grpc.ChainUnaryInterceptor(
+			params.Interceptors...,
 		),
 	)
 	grpcServer.Server = sv
