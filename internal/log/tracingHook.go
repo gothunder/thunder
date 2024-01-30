@@ -5,6 +5,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// TracingHook is a hook that adds trace and span IDs to the log
+// It helps to correlate logs with traces, then improving observability and debugging
 type TracingHook struct{}
 
 func (h TracingHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {

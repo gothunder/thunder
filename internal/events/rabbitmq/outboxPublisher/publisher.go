@@ -23,6 +23,7 @@ type rabbitmqOutboxPublisher[T OutboxPublisherFactory] struct {
 
 const scope = "github.com/gothunder/thunder/internal/events/rabbitmq/outboxPublisher"
 
+// Forwarder factory is an interface that creates a forwarder
 type ForwarderFactory interface {
 	Forwarder(consumerGroup string, outPublisher message.Publisher) (*forwarder.Forwarder, error)
 }

@@ -28,6 +28,7 @@ func CreateHandler(graphQLSchema graphql.ExecutableSchema) *handler.Server {
 	graphqlHandler.AroundOperations(aroundOperations)
 
 	// Add otel middleware
+	// It will create traces for each request making possible to see the whole request lifecycle
 	graphqlHandler.Use(otelgqlgen.Middleware())
 
 	return graphqlHandler

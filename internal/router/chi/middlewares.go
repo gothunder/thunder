@@ -18,7 +18,7 @@ func defaultMiddlewares(r *chi.Mux, logger *zerolog.Logger) {
 	// Add a correlation ID to the context
 	r.Use(thunderMiddlewares.CorrelationID)
 
-	// Add tracing to the context
+	// Add tracing to the context, making possible to see the whole request lifecycle
 	r.Use(otelchi.Middleware(os.Getenv("SERVICE_NAME"), otelchi.WithChiRoutes(r)))
 
 	// Ggets sets the right RemoteAddr for the request

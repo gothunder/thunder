@@ -7,8 +7,12 @@ import (
 	amqpclient "github.com/streadway/amqp"
 )
 
+// ThunderTopologyBuilder is a rabbitmq topology builder addapt thunder constraints
+// on top of watermill topology builder. It is used to build the topology of the
+// rabbitmq publisher and consumer
 type ThunderTopologyBuilder struct{}
 
+// ExchangeDeclare declares an exchange on the rabbitmq broker
 func (builder ThunderTopologyBuilder) ExchangeDeclare(channel *amqpclient.Channel, exchangeName string, config amqp.Config) error {
 	return channel.ExchangeDeclare(
 		exchangeName,
@@ -21,6 +25,8 @@ func (builder ThunderTopologyBuilder) ExchangeDeclare(channel *amqpclient.Channe
 	)
 }
 
+// BuildTopology builds the topology of the rabbitmq publisher and consumer
+// It declares a dead letter queue
 func (builder *ThunderTopologyBuilder) BuildTopology(channel *amqpclient.Channel, queueName string, exchangeName string, config amqp.Config, logger watermill.LoggerAdapter) error {
 	if err := builder.deadLetterDeclare(channel, queueName+"_dlx"); err != nil {
 		return eris.Wrap(err, "failed to declare dead letter")
@@ -61,6 +67,7 @@ func (builder *ThunderTopologyBuilder) BuildTopology(channel *amqpclient.Channel
 	return nil
 }
 
+// deadLetterDeclare declares a dead letter exchange and queue binding them together
 func (builder *ThunderTopologyBuilder) deadLetterDeclare(channel *amqpclient.Channel, dlxName string) error {
 	err := channel.ExchangeDeclare(
 		dlxName,
