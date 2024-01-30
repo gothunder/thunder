@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -21,7 +22,7 @@ func errorPresenter(ctx context.Context, err error) *gqlerror.Error {
 	requestID := middleware.GetReqID(ctx)
 
 	lvl := zerolog.PanicLevel
-	if errors.Is(err, io.ErrUnexpectedEOF) {
+	if errors.Is(err, io.ErrUnexpectedEOF) || strings.Contains(err.Error(), "unexpected EOF") {
 		lvl = zerolog.ErrorLevel
 	}
 
