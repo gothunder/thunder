@@ -41,7 +41,6 @@ func newWatermillConfig(logger *zerolog.Logger) amqp.Config {
 			Arguments: amqpclient.Table{
 				"x-queue-type":           "quorum",
 				"x-dead-letter-exchange": dlxName,
-				"x-queue-leader-locator": "balanced",
 			},
 		},
 		QueueBind: amqp.QueueBindConfig{
