@@ -100,14 +100,7 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 		// If we failed to publish, it means that the connection is down.
 		// So we can pause the publisher and re-publish the event.
 		// The publisher will be unpaused when the connection is re-established.
-		r.pausePublishMux.Lock()
-		r.pausePublish = true
-		r.pausePublishMux.Unlock()
-
-		// If the channel is empty, we can send a signal to pause the publisher
-		if len(r.pauseSignalChan) == 0 {
-			r.pauseSignalChan <- true
-		}
+		r.pause()
 
 		// Re-publish the event
 		r.unpublishedMessages <- msg
@@ -138,4 +131,7 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 
 	log.Ctx(msg.Context).Info().Str("topic", msg.Topic).Msg("message published")
 	r.wg.Done()
+	r.lastPublishedAtMux.Lock()
+	r.lastPublishedAt = time.Now()
+	r.lastPublishedAtMux.Unlock()
 }
