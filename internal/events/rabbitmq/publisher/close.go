@@ -23,6 +23,7 @@ func (r *rabbitmqPublisher) Close(ctx context.Context) error {
 	}
 
 	r.logger.Info().Msg("publisher closed gracefully")
+	r.closed.Store(true)
 	return nil
 }
 

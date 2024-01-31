@@ -32,17 +32,12 @@ func (r *rabbitmqPublisher) handleNotifyBlocked() {
 	)
 
 	for blocking := range notifyBlockedChan {
-		r.pausePublishMux.Lock()
 		if blocking.Active {
-			r.pausePublish = true
-			if len(r.pauseSignalChan) == 0 {
-				r.pauseSignalChan <- true
-			}
+			r.pause()
 			r.logger.Warn().Msg("pausing publishing due to TCP blocking from server")
 		} else {
-			r.pausePublish = false
+			r.resume()
 			r.logger.Warn().Msg("resuming publishing due to TCP unblocking from server")
 		}
-		r.pausePublishMux.Unlock()
 	}
 }

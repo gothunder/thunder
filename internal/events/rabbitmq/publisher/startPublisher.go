@@ -8,6 +8,7 @@ import (
 
 func (r *rabbitmqPublisher) StartPublisher(ctx context.Context) error {
 	go r.proccessingLoop()
+	go r.healthCheckLoop()
 
 	for {
 		err := r.chManager.Channel.Confirm(false)
@@ -16,9 +17,7 @@ func (r *rabbitmqPublisher) StartPublisher(ctx context.Context) error {
 		}
 		r.listenForNotifications()
 
-		r.pausePublishMux.Lock()
-		r.pausePublish = false
-		r.pausePublishMux.Unlock()
+		r.resume()
 
 		// Wait for reconnection
 		err = <-r.chManager.NotifyReconnection

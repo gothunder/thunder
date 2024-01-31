@@ -2,6 +2,8 @@ package publisher
 
 import (
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/gothunder/thunder/internal/events/rabbitmq/manager"
@@ -28,7 +30,7 @@ type rabbitmqPublisher struct {
 	publisherFunc func(message)
 
 	// Wait group used to wait for all the publishes to finish
-	wg *sync.WaitGroup
+	wg *waitGroupCount
 
 	// These flags are used to prevent the publisher from publishing messages to the queue
 	pausePublish    bool
@@ -41,6 +43,16 @@ type rabbitmqPublisher struct {
 
 	// tracing
 	tracePropagator *tracing.AmqpTracePropagator
+
+	// health check
+	health             bool
+	healthMux          *sync.RWMutex
+	lastPausedAt       time.Time
+	lastPausedAtMux    *sync.RWMutex
+	lastPublishedAt    time.Time
+	lastPublishedAtMux *sync.RWMutex
+
+	closed atomic.Bool
 }
 
 func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublisher, error) {
@@ -58,7 +70,7 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 		chManager: chManager,
 
 		unpublishedMessages: make(chan message),
-		wg:                  &sync.WaitGroup{},
+		wg:                  newWaitGroupCounter(),
 
 		pausePublish:    true,
 		pausePublishMux: &sync.RWMutex{},
@@ -73,6 +85,15 @@ func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublis
 		notifyPublishChan: make(chan amqp.Confirmation),
 
 		tracePropagator: tracing.NewAmqpTracing(log),
+
+		health:             true,
+		healthMux:          &sync.RWMutex{},
+		lastPausedAt:       time.Now(),
+		lastPausedAtMux:    &sync.RWMutex{},
+		lastPublishedAt:    time.Now(),
+		lastPublishedAtMux: &sync.RWMutex{},
+
+		closed: atomic.Bool{},
 	}
 	publisher.publisherFunc = publisher.publishMessage
 
