@@ -14,6 +14,6 @@ func (h CorrelationIDHook) Run(e *zerolog.Event, level zerolog.Level, msg string
 	ctx := e.GetCtx()
 	correlationID := thunderContext.CorrelationIDFromContext(ctx)
 	if correlationID != "" {
-		e.Str("correlation-id", correlationID)
+		e.Str("correlation_id", correlationID)
 	}
 }
