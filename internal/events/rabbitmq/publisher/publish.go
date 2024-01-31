@@ -131,7 +131,17 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 
 	log.Ctx(msg.Context).Info().Str("topic", msg.Topic).Msg("message published")
 	r.wg.Done()
+	r.updatePublishedAt()
+}
+
+func (r *rabbitmqPublisher) updatePublishedAt() {
 	r.lastPublishedAtMux.Lock()
 	r.lastPublishedAt = time.Now()
 	r.lastPublishedAtMux.Unlock()
+}
+
+func (r *rabbitmqPublisher) getLastPublishedAt() time.Time {
+	r.lastPublishedAtMux.RLock()
+	defer r.lastPublishedAtMux.RUnlock()
+	return r.lastPublishedAt
 }

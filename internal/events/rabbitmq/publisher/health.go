@@ -33,6 +33,7 @@ func newWaitGroupCounter() *waitGroupCount {
 }
 
 const (
+	timeCheckTicker            = 30 * time.Second
 	timeWithoutPublishUnhealth = 30 * time.Second
 	timePausedUnhealth         = 30 * time.Second
 )
@@ -40,7 +41,7 @@ const (
 func (r *rabbitmqPublisher) healthCheckLoop() {
 	logger := r.logger.With().Str("component", "publisher_health_check").Logger()
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(timeCheckTicker)
 	defer ticker.Stop()
 	for {
 		<-ticker.C
@@ -67,9 +68,7 @@ func (r *rabbitmqPublisher) healthCheckLoop() {
 			continue
 		}
 
-		r.lastPublishedAtMux.RLock()
-		lastPublishedAt := r.lastPublishedAt
-		r.lastPublishedAtMux.RUnlock()
+		lastPublishedAt := r.getLastPublishedAt()
 		if time.Since(lastPublishedAt) > timeWithoutPublishUnhealth {
 			logger.Warn().
 				Int64("messages_unpublished", count).
