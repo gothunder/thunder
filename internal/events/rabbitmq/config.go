@@ -28,6 +28,7 @@ type Config struct {
 	URL                 string
 	ConsumerName        string
 	ConsumerConcurrency int
+	PrefetchCount       int
 
 	MaxRetries          int
 	InitialInterval     time.Duration
@@ -79,6 +80,18 @@ func LoadConfig(log *zerolog.Logger) Config {
 	if c.ConsumerConcurrency == 0 {
 		c.ConsumerConcurrency = 10
 		log.Info().Msgf("RABBIT_CONSUMER_CONCURRENCY is not set, defaulting to %d", c.ConsumerConcurrency)
+	}
+
+	prefetchCount := os.Getenv("RABBIT_PREFETCH_COUNT")
+	if prefetchCount != "" {
+		parsedPrefetchCount, err := strconv.Atoi(prefetchCount)
+		if err == nil {
+			c.PrefetchCount = parsedPrefetchCount
+		}
+	}
+	if c.PrefetchCount == 0 {
+		c.PrefetchCount = c.ConsumerConcurrency
+		log.Info().Msgf("RABBIT_PREFETCH_COUNT is not set, defaulting to %d", c.PrefetchCount)
 	}
 
 	maxRetries := os.Getenv("RABBIT_MAX_RETRIES")
