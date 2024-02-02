@@ -26,7 +26,7 @@ func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 	}
 
 	err = r.chManager.Channel.Qos(
-		r.config.ConsumerConcurrency, 0, false,
+		r.config.PrefetchCount, 0, false,
 	)
 	if err != nil {
 		return eris.Wrap(err, "failed to set QoS")
