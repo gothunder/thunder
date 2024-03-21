@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	thunderContext "github.com/gothunder/thunder/pkg/context"
-	"github.com/gothunder/thunder/pkg/events/metadata"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog/log"
@@ -52,6 +51,13 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 		return eris.Wrap(err, "failed to encode event")
 	}
 
+	// Ensure the correlation is propagated or generated
+	ctx = thunderContext.ContextWithCorrelationID(ctx, thunderContext.CorrelationIDFromContext(ctx))
+	metadata := thunderContext.MetadataFromContext(ctx)
+	// We must generate a new message ID on every publish, because the current message ID in the
+	// context is the one that was received from the client, and it's not unique.
+	metadata.Set(thunderContext.ThunderIDMetadataKey, uuid.Must(uuid.NewV7()).String())
+
 	// Queue the message to be published
 	r.unpublishedMessages <- message{
 		Context: ctx,
@@ -60,10 +66,7 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 			ContentType:  "application/json",
 			DeliveryMode: amqp091.Persistent,
 			Body:         body,
-			Headers: amqp091.Table{
-				metadata.ThunderIDMetadataKey:            uuid.NewString(),
-				metadata.ThunderCorrelationIDMetadataKey: thunderContext.CorrelationIDFromContext(ctx),
-			},
+			Headers:      amqpTableFromMetadata(metadata),
 		},
 	}
 
@@ -144,4 +147,12 @@ func (r *rabbitmqPublisher) getLastPublishedAt() time.Time {
 	r.lastPublishedAtMux.RLock()
 	defer r.lastPublishedAtMux.RUnlock()
 	return r.lastPublishedAt
+}
+
+func amqpTableFromMetadata(metadata thunderContext.Metadata) amqp091.Table {
+	table := make(amqp091.Table, len(metadata))
+	for k, v := range metadata {
+		table[k] = v
+	}
+	return table
 }

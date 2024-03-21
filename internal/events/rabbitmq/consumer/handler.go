@@ -8,7 +8,6 @@ import (
 
 	thunderContext "github.com/gothunder/thunder/pkg/context"
 	"github.com/gothunder/thunder/pkg/events"
-	"github.com/gothunder/thunder/pkg/events/metadata"
 	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
@@ -43,8 +42,9 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 
 		logger := r.logger.With().Str("topic", topic).Logger()
 		ctx = logger.WithContext(ctx)
-		ctx = ctxWithMsgID(ctx, msg)
-		ctx = ctxWithCorrID(ctx, msg)
+		ctx = thunderContext.ContextWithMetadata(ctx, metadataFromAmqpTable(msg.Headers))
+		// ensures that the correlation ID is propagated or generated
+		ctx = thunderContext.ContextWithCorrelationID(ctx, thunderContext.CorrelationIDFromContext(ctx))
 
 		decoder := newDecoder(msg)
 		res := r.handleWithRecoverer(ctx, handler, topic, decoder)
@@ -105,36 +105,6 @@ func (r *rabbitmqConsumer) handleWithRecoverer(ctx context.Context, handler even
 	return handler.Handle(ctx, topic, decoder)
 }
 
-func idFromMessage(msg amqp.Delivery) string {
-	if msgID, ok := msg.Headers[metadata.ThunderIDMetadataKey]; ok && msgID != nil {
-		if msgIDStr, ok := msgID.(string); ok {
-			return msgIDStr
-		}
-	}
-
-	return ""
-}
-
-func ctxWithMsgID(ctx context.Context, msg amqp.Delivery) context.Context {
-	msgID := idFromMessage(msg)
-	return thunderContext.ContextWithMessageID(ctx, msgID)
-}
-
-func corrIdFromMessage(msg amqp.Delivery) string {
-	if corrID, ok := msg.Headers[metadata.ThunderCorrelationIDMetadataKey]; ok && corrID != nil {
-		if corrIDStr, ok := corrID.(string); ok {
-			return corrIDStr
-		}
-	}
-
-	return ""
-}
-
-func ctxWithCorrID(ctx context.Context, msg amqp.Delivery) context.Context {
-	corrID := corrIdFromMessage(msg)
-	return thunderContext.ContextWithCorrelationID(ctx, corrID)
-}
-
 // extractTopic extracts the topic from the message.
 // It looks at the headers first, then the routing key.
 func extractTopic(msg amqp091.Delivery) string {
@@ -162,4 +132,14 @@ func newDecoder(msg amqp091.Delivery) events.EventDecoder {
 	}
 
 	return json.NewDecoder(bytes.NewReader(msg.Body))
+}
+
+func metadataFromAmqpTable(headers amqp.Table) thunderContext.Metadata {
+	metadata := make(thunderContext.Metadata, len(headers))
+	for k, v := range headers {
+		if s, ok := v.(string); ok {
+			metadata[k] = s
+		}
+	}
+	return metadata
 }
