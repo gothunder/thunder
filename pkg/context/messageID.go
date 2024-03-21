@@ -9,10 +9,6 @@ const ThunderIDMetadataKey = "x-thunder-id"
 // MessageIDFromContext retrieves the message ID from a context.Context.
 func MessageIDFromContext(ctx context.Context) string {
 	m := MetadataFromContext(ctx)
-	if m == nil {
-		return ""
-	}
-
 	return m.Get(ThunderIDMetadataKey)
 }
 

@@ -61,5 +61,5 @@ func MetadataFromContext(ctx context.Context) Metadata {
 	if md, ok := ctx.Value(metadataKey{}).(Metadata); ok {
 		return md
 	}
-	return nil
+	return make(Metadata)
 }
