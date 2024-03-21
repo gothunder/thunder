@@ -1,19 +1,20 @@
 package context
 
-import "context"
+import (
+	"context"
+)
 
-type messageIDKey struct{}
+const ThunderIDMetadataKey = "x-thunder-id"
 
 // MessageIDFromContext retrieves the message ID from a context.Context.
 func MessageIDFromContext(ctx context.Context) string {
-	messageID, ok := ctx.Value(messageIDKey{}).(string)
-	if !ok {
-		return ""
-	}
-	return messageID
+	m := MetadataFromContext(ctx)
+	return m.Get(ThunderIDMetadataKey)
 }
 
 // ContextWithMessageID returns a new context.Context that holds the given message ID.
 func ContextWithMessageID(ctx context.Context, messageID string) context.Context {
-	return context.WithValue(ctx, messageIDKey{}, messageID)
+	md := make(Metadata, 1)
+	md.Set(ThunderIDMetadataKey, messageID)
+	return ContextWithMetadata(ctx, md)
 }

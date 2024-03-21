@@ -27,6 +27,7 @@ func NewServer(params NewServerParams) *BareServer {
 
 	params.Interceptors = append(
 		params.Interceptors,
+		UnaryServerMetadataPropagator,
 		grpcLoggerInterceptor(params.Logger),
 	)
 

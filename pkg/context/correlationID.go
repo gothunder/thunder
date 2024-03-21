@@ -6,21 +6,28 @@ import (
 	"github.com/google/uuid"
 )
 
-type correlationIDKey struct{}
+const ThunderCorrelationIDMetadataKey = "x-thunder-correlation-id"
 
 // CorrelationIDFromContext retrieves the correlation ID from a context.Context.
 func CorrelationIDFromContext(ctx context.Context) string {
-	correlationID, ok := ctx.Value(correlationIDKey{}).(string)
-	if !ok {
-		return ""
+	md := MetadataFromContext(ctx)
+	if md.Get(ThunderCorrelationIDMetadataKey) == "" {
+		// creates a new correlation ID if none is found.
+		// it makes sure correlation is passed through the system even if it was not set
+		// by the first caller
+		return uuid.Must(uuid.NewV7()).String()
 	}
-	return correlationID
+
+	return md.Get(ThunderCorrelationIDMetadataKey)
 }
 
 // ContextWithCorrelationID returns a new context.Context that holds the given correlation ID.
 func ContextWithCorrelationID(ctx context.Context, correlationID string) context.Context {
+	md := make(Metadata, 1)
 	if correlationID == "" {
-		return context.WithValue(ctx, correlationIDKey{}, uuid.NewString())
+		md.Set(ThunderCorrelationIDMetadataKey, uuid.Must(uuid.NewV7()).String())
+	} else {
+		md.Set(ThunderCorrelationIDMetadataKey, correlationID)
 	}
-	return context.WithValue(ctx, correlationIDKey{}, correlationID)
+	return ContextWithMetadata(ctx, md)
 }

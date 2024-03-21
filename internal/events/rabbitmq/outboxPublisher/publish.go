@@ -8,7 +8,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	thunderContext "github.com/gothunder/thunder/pkg/context"
-	"github.com/gothunder/thunder/pkg/events/metadata"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -60,10 +59,16 @@ func (r *rabbitmqOutboxPublisher[T]) Publish(ctx context.Context, topic string, 
 		return roxy.Wrap(err, "failed to encode event")
 	}
 
+	// Ensure the correlation is propagated or generated
+	tctx = thunderContext.ContextWithCorrelationID(tctx, thunderContext.CorrelationIDFromContext(tctx))
+	metadata := thunderContext.MetadataFromContext(tctx)
+	// We must generate a new message ID on every publish, because the current message ID in the
+	// context is the one that was received from the client, and it's not unique.
+	metadata.Set(thunderContext.ThunderIDMetadataKey, uuid.Must(uuid.NewV7()).String())
+
 	// As we are using the watermill publisher interface, we need to create a watermill message
-	msg := message.NewMessage(uuid.NewString(), body)
-	msg.Metadata.Set(metadata.ThunderIDMetadataKey, msg.UUID)                                                 // set the thunder id
-	msg.Metadata.Set(metadata.ThunderCorrelationIDMetadataKey, thunderContext.CorrelationIDFromContext(tctx)) // set the correlation id
+	msg := message.NewMessage(metadata.Get(thunderContext.ThunderIDMetadataKey), body)
+	msg.Metadata = msgMetadataFromContextMetadata(metadata)
 	msg.SetContext(tctx)
 
 	// Publish the message with the trace context propagated in the message headers
@@ -73,4 +78,12 @@ func (r *rabbitmqOutboxPublisher[T]) Publish(ctx context.Context, topic string, 
 	}
 
 	return nil
+}
+
+func msgMetadataFromContextMetadata(metadata thunderContext.Metadata) message.Metadata {
+	msgMetadata := make(message.Metadata, len(metadata))
+	for k, v := range metadata {
+		msgMetadata[k] = v
+	}
+	return msgMetadata
 }

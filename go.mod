@@ -53,6 +53,7 @@ require (
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.opentelemetry.io/contrib v1.21.1 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
@@ -81,6 +82,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/ravilushqa/otelgqlgen v0.15.0
 	github.com/riandyrn/otelchi v0.5.1
+	github.com/samber/lo v1.39.0
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
