@@ -25,10 +25,11 @@ type NewServerParams struct {
 func NewServer(params NewServerParams) *BareServer {
 	grpcServer := &BareServer{}
 
+	// We want to add the MetadataPropagator interceptor first and
+	// logger interceptor last.
 	params.Interceptors = append(
-		params.Interceptors,
-		UnaryServerMetadataPropagator,
-		grpcLoggerInterceptor(params.Logger),
+		[]grpc.UnaryServerInterceptor{UnaryServerMetadataPropagator},
+		append(params.Interceptors, grpcLoggerInterceptor(params.Logger))...,
 	)
 
 	sv := grpc.NewServer(
