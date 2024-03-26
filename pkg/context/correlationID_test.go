@@ -21,9 +21,9 @@ func TestContextWithCorrelationIDAndCorrelationIDFromContext(t *testing.T) {
 			t.Error("should return a new context with the given correlation ID")
 		}
 	})
-	t.Run("should generate a new correlation ID if none in the context", func(t *testing.T) {
+	t.Run("should return empty when not set", func(t *testing.T) {
 		t.Parallel()
-		if CorrelationIDFromContext(context.Background()) == "" {
+		if CorrelationIDFromContext(context.Background()) != "" {
 			t.Error("should return an empty string if the correlation ID is not in the context")
 		}
 	})
