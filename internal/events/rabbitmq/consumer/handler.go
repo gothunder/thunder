@@ -137,6 +137,9 @@ func newDecoder(msg amqp091.Delivery) events.EventDecoder {
 func metadataFromAmqpTable(headers amqp.Table) thunderContext.Metadata {
 	metadata := make(thunderContext.Metadata, len(headers))
 	for k, v := range headers {
+		if k == topicHeaderKey {
+			continue
+		}
 		if s, ok := v.(string); ok {
 			metadata[k] = s
 		}
