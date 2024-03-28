@@ -134,15 +134,21 @@ func newDecoder(msg amqp091.Delivery) events.EventDecoder {
 	return json.NewDecoder(bytes.NewReader(msg.Body))
 }
 
-func metadataFromAmqpTable(headers amqp.Table) thunderContext.Metadata {
-	metadata := make(thunderContext.Metadata, len(headers))
+func metadataFromAmqpTable(headers amqp.Table) *thunderContext.Metadata {
+	metadata := thunderContext.NewMetadata()
+
+	// add all string headers to the metadata
+	stringMap := make(map[string]string, len(headers))
 	for k, v := range headers {
-		if k == topicHeaderKey {
-			continue
-		}
 		if s, ok := v.(string); ok {
-			metadata[k] = s
+			stringMap[k] = s
 		}
 	}
+
+	// unmarshal the headers into the metadata
+	// it will get only the ones with the "x-thunder-metadata-" prefix
+	// meaning it belongs to the metadata
+	metadata.UnmarshalMap(stringMap)
+
 	return metadata
 }

@@ -17,7 +17,7 @@ func CorrelationIDFromContext(ctx context.Context) string {
 
 // ContextWithCorrelationID returns a new context.Context that holds the given correlation ID.
 func ContextWithCorrelationID(ctx context.Context, correlationID string) context.Context {
-	md := make(Metadata, 1)
+	md := newMetadata()
 	if correlationID == "" {
 		md.Set(ThunderCorrelationIDMetadataKey, uuid.Must(uuid.NewV7()).String())
 	} else {

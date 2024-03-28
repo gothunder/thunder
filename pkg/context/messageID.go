@@ -14,7 +14,7 @@ func MessageIDFromContext(ctx context.Context) string {
 
 // ContextWithMessageID returns a new context.Context that holds the given message ID.
 func ContextWithMessageID(ctx context.Context, messageID string) context.Context {
-	md := make(Metadata, 1)
+	md := newMetadata()
 	md.Set(ThunderIDMetadataKey, messageID)
 	return ContextWithMetadata(ctx, md)
 }

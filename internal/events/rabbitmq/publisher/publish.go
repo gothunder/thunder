@@ -149,9 +149,10 @@ func (r *rabbitmqPublisher) getLastPublishedAt() time.Time {
 	return r.lastPublishedAt
 }
 
-func amqpTableFromMetadata(metadata thunderContext.Metadata) amqp091.Table {
-	table := make(amqp091.Table, len(metadata))
-	for k, v := range metadata {
+func amqpTableFromMetadata(metadata *thunderContext.Metadata) amqp091.Table {
+	stringMap := metadata.MarshalMap()
+	table := make(amqp091.Table, len(stringMap))
+	for k, v := range stringMap {
 		table[k] = v
 	}
 	return table

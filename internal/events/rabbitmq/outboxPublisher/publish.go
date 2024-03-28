@@ -80,9 +80,10 @@ func (r *rabbitmqOutboxPublisher[T]) Publish(ctx context.Context, topic string, 
 	return nil
 }
 
-func msgMetadataFromContextMetadata(metadata thunderContext.Metadata) message.Metadata {
-	msgMetadata := make(message.Metadata, len(metadata))
-	for k, v := range metadata {
+func msgMetadataFromContextMetadata(metadata *thunderContext.Metadata) message.Metadata {
+	stringMap := metadata.MarshalMap()
+	msgMetadata := make(message.Metadata, len(stringMap))
+	for k, v := range stringMap {
 		msgMetadata[k] = v
 	}
 	return msgMetadata
