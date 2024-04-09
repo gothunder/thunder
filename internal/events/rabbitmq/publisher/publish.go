@@ -76,7 +76,7 @@ func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload i
 func (r *rabbitmqPublisher) publishMessage(msg message) {
 	// We'll timeout the publish after confirmTimeout seconds and consider as failed
 	ctx, cancel := context.WithTimeout(context.Background(), confirmTimeout)
-	_, span := otel.Tracer(scope).Start(msg.Context, "rabbitmqPublisher.publishMessage",
+	spanctx, span := otel.Tracer(scope).Start(msg.Context, "rabbitmqPublisher.publishMessage",
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(
 			semconv.MessagingSystem("rabbitmq"),
@@ -86,6 +86,8 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	)
 	defer span.End()
 
+	logger := log.Ctx(spanctx).With().Ctx(spanctx).Logger()
+
 	// Actual publish.
 	deferredConfirmation, err := r.chManager.Channel.PublishWithDeferredConfirmWithContext(
 		ctx,
@@ -93,12 +95,12 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 		msg.Topic,
 		true,
 		false,
-		*r.tracePropagator.WithTrace(ctx, &msg.Message),
+		*r.tracePropagator.WithTrace(spanctx, &msg.Message),
 	)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to publish message")
-		log.Ctx(msg.Context).Error().Err(err).Msg("failed to publish event, retrying")
+		logger.Error().Err(err).Msg("failed to publish event, retrying")
 
 		// If we failed to publish, it means that the connection is down.
 		// So we can pause the publisher and re-publish the event.
@@ -115,7 +117,7 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	confirmed, err := deferredConfirmation.WaitContext(ctx)
 	cancel()
 	if err != nil {
-		log.Ctx(msg.Context).Error().Err(err).Msg("error on confirming publish, retrying")
+		logger.Error().Err(err).Msg("error on confirming publish, retrying")
 
 		// If we timed out, we need to re-publish the event. We don't pause publisher in this circunstances
 		// because it may be a temporary issue with a leader node and the connection is still up
@@ -125,14 +127,14 @@ func (r *rabbitmqPublisher) publishMessage(msg message) {
 	if !confirmed {
 		span.RecordError(errors.New("failed to confirm publish"))
 		span.SetStatus(codes.Error, "failed to confirm publish")
-		log.Ctx(msg.Context).Error().Msg("failed to confirm publish, retrying")
+		logger.Error().Msg("failed to confirm publish, retrying")
 
 		// If we didn't get confirmation, we need to re-publish the event.
 		r.unpublishedMessages <- msg
 		return
 	}
 
-	log.Ctx(msg.Context).Info().Str("topic", msg.Topic).Msg("message published")
+	logger.Info().Str("topic", msg.Topic).Msg("message published")
 	r.wg.Done()
 	r.updatePublishedAt()
 }
