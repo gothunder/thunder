@@ -40,7 +40,7 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			),
 		)
 
-		logger := r.logger.With().Str("topic", topic).Logger()
+		logger := r.logger.With().Str("topic", topic).Ctx(ctx).Logger()
 		ctx = logger.WithContext(ctx)
 		ctx = thunderContext.ContextWithMetadata(ctx, metadataFromAmqpTable(msg.Headers))
 		// ensures that the correlation ID is propagated or generated
