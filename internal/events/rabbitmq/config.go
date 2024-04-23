@@ -37,7 +37,9 @@ type Config struct {
 	MaxInterval         time.Duration
 }
 
-func LoadConfig(log *zerolog.Logger) Config {
+type RabbitmqConfigOption func(*Config)
+
+func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 	c := Config{
 		ExchangeName:        os.Getenv("RABBIT_EXCHANGE"),
 		QueueName:           os.Getenv("RABBIT_QUEUE"),
@@ -132,6 +134,10 @@ func LoadConfig(log *zerolog.Logger) Config {
 		if err == nil {
 			c.MaxInterval = parsedMaxInterval
 		}
+	}
+
+	for _, opt := range opts {
+		opt(&c)
 	}
 
 	return c

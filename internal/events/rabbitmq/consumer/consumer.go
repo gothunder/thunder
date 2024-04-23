@@ -31,8 +31,8 @@ type rabbitmqConsumer struct {
 	tracePropagator *tracing.AmqpTracePropagator
 }
 
-func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger) (events.EventConsumer, error) {
-	config := rabbitmq.LoadConfig(log)
+func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger, opts ...rabbitmq.RabbitmqConfigOption) (events.EventConsumer, error) {
+	config := rabbitmq.LoadConfig(log, opts...)
 
 	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log)
 	if err != nil {
