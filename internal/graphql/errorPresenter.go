@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -27,9 +28,16 @@ func errorPresenter(ctx context.Context, err error) *gqlerror.Error {
 	}
 
 	logger := log.Ctx(ctx).With().Stack().Logger()
+	oc := graphql.GetOperationContext(ctx)
+	var query string
+	if oc != nil {
+		query = oc.RawQuery
+	}
+
 	logger.WithLevel(lvl).
 		Err(err).
 		Str("requestID", requestID).
+		Str("query", query).
 		Msg("response not provided")
 
 	return internalError
