@@ -27,10 +27,10 @@ func errorPresenter(ctx context.Context, err error) *gqlerror.Error {
 		lvl = zerolog.ErrorLevel
 	}
 
-	logger := log.Ctx(ctx).With().Stack().Logger()
-	oc := graphql.GetOperationContext(ctx)
 	var query string
-	if oc != nil {
+	logger := log.Ctx(ctx).With().Stack().Logger()
+	if graphql.HasOperationContext(ctx) {
+		oc := graphql.GetOperationContext(ctx)
 		query = oc.RawQuery
 	}
 
