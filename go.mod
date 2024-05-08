@@ -15,7 +15,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/onsi/ginkgo/v2 v2.12.1
 	github.com/onsi/gomega v1.27.10
-	github.com/rabbitmq/amqp091-go v1.8.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.31.0
 	github.com/streadway/amqp v1.0.0
