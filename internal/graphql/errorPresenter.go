@@ -26,6 +26,9 @@ func errorPresenter(ctx context.Context, err error) *gqlerror.Error {
 	if errors.Is(err, io.ErrUnexpectedEOF) || strings.Contains(err.Error(), "unexpected EOF") {
 		lvl = zerolog.ErrorLevel
 	}
+	if strings.Contains(err.Error(), "could not get json request body") {
+		lvl = zerolog.ErrorLevel
+	}
 
 	var query string
 	logger := log.Ctx(ctx).With().Stack().Logger()
