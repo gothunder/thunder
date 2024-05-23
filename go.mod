@@ -17,7 +17,7 @@ require (
 	github.com/onsi/gomega v1.27.10
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/rotisserie/eris v0.5.4
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.33.0
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vektah/gqlparser/v2 v2.5.11
