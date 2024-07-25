@@ -39,12 +39,14 @@ type Handler interface {
 /*
 MatchTopicAndFormatsMessage matches the topic and formats the message.
 
+**This is deprecated and should not be used.**
+
 It takes the following parameters:
-   - ctx: the context.Context object for the function.
-   - decoder: the thunderEvents.EventDecoder object for decoding the message.
-   - referenceTopic: the reference topic string for matching.
-   - topic: the topic string to match against the reference topic.
-   - message: the message object to be formatted.
+  - ctx: the context.Context object for the function.
+  - decoder: the thunderEvents.EventDecoder object for decoding the message.
+  - referenceTopic: the reference topic string for matching.
+  - topic: the topic string to match against the reference topic.
+  - message: the message object to be formatted.
 
 It returns a pointer to the formatted message object and any error encountered.
 if the match fails, nil is returned.
