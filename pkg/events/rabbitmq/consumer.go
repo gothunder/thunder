@@ -11,8 +11,28 @@ import (
 	"go.uber.org/fx"
 )
 
-func NewRabbitMQConsumer(logger *zerolog.Logger, opts ...rabbitmq.RabbitmqConfigOption) (events.EventConsumer, error) {
-	return consumer.NewConsumer(amqp091.Config{}, logger, opts...)
+type namedHandlerParams struct {
+	fx.In
+	NamedHandlers []events.NamedHandler `group:"named_handlers"`
+}
+
+func registerNamedConsumers(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, params namedHandlerParams) {
+	for _, namedHandler := range params.NamedHandlers {
+		registerNamedConsumer(lc, s, logger, namedHandler)
+	}
+}
+
+func registerNamedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, namedHandler events.NamedHandler) {
+	consumer, err := NewRabbitMQConsumer(logger, WithQueueNamePosfix(namedHandler.QueuePosfix()))
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to create consumer")
+		err = s.Shutdown()
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to shutdown")
+		}
+	}
+
+	registerProvidedConsumer(lc, s, logger, namedHandler, consumer)
 }
 
 func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler) {
@@ -90,6 +110,10 @@ func registerProvidedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.
 	)
 }
 
+func NewRabbitMQConsumer(logger *zerolog.Logger, opts ...rabbitmq.RabbitmqConfigOption) (events.EventConsumer, error) {
+	return consumer.NewConsumer(amqp091.Config{}, logger, opts...)
+}
+
 // A module that provides a RabbitMQ consumer.
 // The consumer will be automatically started and stopped gracefully.
 // The consumer will subscribe to the provided topics.
@@ -102,4 +126,12 @@ var InvokeConsumer = fx.Invoke(
 
 var InvokeProvidedConsumer = fx.Invoke(
 	registerProvidedConsumer,
+)
+
+var InvokeNamedConsumers = fx.Invoke(
+	registerNamedConsumers,
+)
+
+var InvokeNamedConsumer = fx.Invoke(
+	registerNamedConsumer,
 )
