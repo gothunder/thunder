@@ -9,18 +9,12 @@ func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 	r.chManager.ChannelMux.RLock()
 	defer r.chManager.ChannelMux.RUnlock()
 
-	// dlxName := r.config.QueueName + "_dlx"
-	// err := r.deadLetterDeclare(dlxName)
-	// if err != nil {
-	// 	return eris.Wrap(err, "failed to declare dead letter")
-	// }
+	err := r.createDLX()
+	if err != nil {
+		r.logger.Error().Err(err).Msg("failed to create DLX")
+	}
 
-	// err = r.queueDeclare(dlxName)
-	// if err != nil {
-	// 	return eris.Wrap(err, "failed to declare queue")
-	// }
-
-	err := r.queueBindDeclare(routingKeys)
+	err = r.queueBindDeclare(routingKeys)
 	if err != nil {
 		return eris.Wrap(err, "failed to declare queue bind")
 	}
@@ -30,6 +24,21 @@ func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 	)
 	if err != nil {
 		return eris.Wrap(err, "failed to set QoS")
+	}
+
+	return nil
+}
+
+func (r *rabbitmqConsumer) createDLX() error {
+	dlxName := r.config.QueueName + "_dlx"
+	err := r.deadLetterDeclare(dlxName)
+	if err != nil {
+		return eris.Wrap(err, "failed to declare dead letter")
+	}
+
+	err = r.queueDeclare(dlxName)
+	if err != nil {
+		return eris.Wrap(err, "failed to declare queue")
 	}
 
 	return nil
