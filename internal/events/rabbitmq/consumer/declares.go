@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -16,10 +17,27 @@ func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 		return nil
 	}
 
-	r.chManager.Channel.Close()
-	time.Sleep(2 * time.Second) // Wait for the channel to close - this is a workaround for the channel not closing immediately
+	err = r.closeChannelAndWaitForReconnect()
+	if err != nil {
+		return eris.Wrap(err, "closeChannelAndWaitForReconnect")
+	}
 
+	err = r.declareAttempt(routingKeys, false)
+	if err != nil {
+		return eris.Wrap(err, "declareAttempt - second attempt")
+	}
+
+	r.logger.Info().Msg("successfully declared queues without DLX")
+	return nil
+}
+
+func (r *rabbitmqConsumer) closeChannelAndWaitForReconnect() error {
+	// Wait for the channel to close - this is a workaround for the channel not closing immediately
 	// Check if the channel is open with backoff
+
+	r.chManager.Channel.Close()
+	time.Sleep(2 * time.Second)
+
 	const maxAttempts = 5
 	const backoffFactor = 2
 	for i := 1; i <= maxAttempts; i++ {
@@ -34,12 +52,6 @@ func (r *rabbitmqConsumer) declare(routingKeys []string) error {
 		return eris.New("failed to reconnect to the amqp channel in time for subscriber")
 	}
 
-	err = r.declareAttempt(routingKeys, false)
-	if err != nil {
-		return eris.Wrap(err, "failed to declare queues")
-	}
-
-	r.logger.Info().Msg("successfully declared queues without DLX")
 	return nil
 }
 
@@ -50,18 +62,18 @@ func (r *rabbitmqConsumer) declareAttempt(routingKeys []string, useDLX bool) err
 	if useDLX {
 		err := r.declareQueuesWithDLX()
 		if err != nil {
-			return eris.Wrap(err, "failed to declare queues with DLX")
+			return eris.Wrap(err, "declareQueuesWithDLX")
 		}
 	} else {
 		err := r.declareQueuesWithoutDLX()
 		if err != nil {
-			return eris.Wrap(err, "failed to declare queues without DLX")
+			return eris.Wrap(err, "declareQueuesWithoutDLX")
 		}
 	}
 
 	err := r.queueBindDeclare(routingKeys)
 	if err != nil {
-		return eris.Wrap(err, "failed to declare queue bind")
+		return eris.Wrap(err, "queueBindDeclare")
 	}
 
 	err = r.chManager.Channel.Qos(
@@ -78,12 +90,12 @@ func (r *rabbitmqConsumer) declareQueuesWithDLX() error {
 	dlxName := r.config.QueueName + "_dlx"
 	err := r.deadLetterDeclare(dlxName)
 	if err != nil {
-		return eris.Wrap(err, "failed to declare dead letter")
+		return eris.Wrap(err, "deadLetterDeclare")
 	}
 
 	err = r.queueDeclare(&dlxName)
 	if err != nil {
-		return eris.Wrap(err, "failed to declare queue")
+		return eris.Wrap(err, "queueDeclare")
 	}
 
 	return nil
@@ -92,7 +104,7 @@ func (r *rabbitmqConsumer) declareQueuesWithDLX() error {
 func (r *rabbitmqConsumer) declareQueuesWithoutDLX() error {
 	err := r.queueDeclare(nil)
 	if err != nil {
-		return eris.Wrap(err, "failed to declare queue")
+		return eris.Wrap(err, "queueDeclare")
 	}
 
 	return nil
@@ -128,6 +140,16 @@ func (r *rabbitmqConsumer) queueDeclare(dlxName *string) error {
 		args,
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), "PRECONDITION_FAILED") {
+			// Queue already exists - no need to redeclare
+			// RabbitMQ will force close, we want to wait for the channel to open again
+			err = r.closeChannelAndWaitForReconnect()
+			if err != nil {
+				return eris.Wrap(err, "closeChannelAndWaitForReconnect")
+			}
+
+			return nil
+		}
 		return eris.Wrap(err, "failed to declare queue")
 	}
 
@@ -162,7 +184,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 		nil,
 	)
 	if err != nil {
-		return eris.Wrap(err, "failed to declare exchange")
+		return eris.Wrap(err, "failed to declare DLX exchange")
 	}
 
 	_, err = r.chManager.Channel.QueueDeclare(
@@ -177,7 +199,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 		},
 	)
 	if err != nil {
-		return eris.Wrap(err, "failed to declare queue")
+		return eris.Wrap(err, "failed to declare DLX queue")
 	}
 
 	err = r.chManager.Channel.QueueBind(
@@ -188,7 +210,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 		nil,
 	)
 	if err != nil {
-		return eris.Wrap(err, "failed to bind queue")
+		return eris.Wrap(err, "failed to bind DLX queue")
 	}
 
 	return nil
