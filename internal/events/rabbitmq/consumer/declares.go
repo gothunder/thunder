@@ -113,9 +113,7 @@ func (r *rabbitmqConsumer) queueDeclare(dlxName *string) error {
 	}
 
 	args := amqp091.Table{
-		amqp091.QueueMaxLenArg:     10000,
-		amqp091.QueueMessageTTLArg: 1000 * 60 * 60 * 24 * 14,
-		amqp091.QueueTypeArg:       amqp091.QueueTypeClassic,
+		amqp091.QueueTypeArg: amqp091.QueueTypeQuorum,
 	}
 	if dlxName != nil && *dlxName != "" {
 		args["x-dead-letter-exchange"] = dlxName
