@@ -171,7 +171,10 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 		false,
 		false,
 		false,
-		nil,
+		amqp091.Table{
+			amqp091.QueueMessageTTLArg: 1000 * 60 * 60 * 24 * 14, // 14 day
+			amqp091.QueueMaxLenArg:     10000,                    // 10k messages
+		},
 	)
 	if err != nil {
 		return eris.Wrap(err, "failed to declare queue")
