@@ -8,6 +8,9 @@ import (
 
 // Graceful shutdown of the publisher.
 func (r *rabbitmqPublisher) Close(ctx context.Context) error {
+	if r.chManager == nil {
+		return eris.New("r.chManager is nil! Invalid publisher")
+	}
 	r.logger.Info().Msg("closing publisher")
 
 	// Wait till all events are published.

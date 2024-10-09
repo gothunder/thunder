@@ -26,10 +26,7 @@ func registerNamedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Log
 	consumer, err := NewRabbitMQConsumer(logger, WithQueueNamePosfix(namedHandler.QueuePosfix()))
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create consumer")
-		err = s.Shutdown()
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to shutdown")
-		}
+		return
 	}
 
 	registerProvidedConsumer(lc, s, logger, namedHandler, consumer)
@@ -39,10 +36,7 @@ func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, 
 	consumer, err := NewRabbitMQConsumer(logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create consumer")
-		err = s.Shutdown()
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to shutdown")
-		}
+		return
 	}
 
 	lc.Append(
@@ -52,10 +46,6 @@ func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, 
 					err := consumer.Subscribe(ctx, handler)
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to subscribe to topics")
-						err = s.Shutdown()
-						if err != nil {
-							logger.Error().Err(err).Msg("failed to shutdown")
-						}
 					}
 				}()
 
@@ -85,10 +75,6 @@ func registerProvidedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.
 					err := consumer.Subscribe(ctx, handler)
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to subscribe to topics")
-						err = s.Shutdown()
-						if err != nil {
-							logger.Error().Err(err).Msg("failed to shutdown")
-						}
 					}
 				}()
 
