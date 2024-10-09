@@ -1,6 +1,8 @@
 package outboxpublisher
 
 import (
+	"strings"
+
 	"github.com/ThreeDotsLabs/watermill-amqp/pkg/amqp"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/alexdrl/zerowater"
@@ -69,6 +71,15 @@ func newWatermillConfig(logger *zerolog.Logger) amqp.Config {
 // newRabbitMQOutPublisher creates a new rabbitmq publisher that publishes messages to the rabbitmq broker
 // It uses the watermill library to publish messages
 // It is used by the forwarder to publish messages from the outbox table to the rabbitmq broker
+// If we can't connect to the broker, returns a dummy publisher that always returns error
 func newRabbitMQOutPublisher(logger *zerolog.Logger) (message.Publisher, error) {
-	return amqp.NewPublisher(newWatermillConfig(logger), zerowater.NewZerologLoggerAdapter(logger.With().Logger()))
+	publisher, err := amqp.NewPublisher(newWatermillConfig(logger), zerowater.NewZerologLoggerAdapter(logger.With().Logger()))
+	if err != nil {
+		if strings.Contains(err.Error(), "create new connection") {
+			logger.Error().Msg("failed to connect to publisher! Using dummy publisher that always fails")
+			return FailedPublisher{}, nil
+		}
+		return nil, err
+	}
+	return publisher, nil
 }

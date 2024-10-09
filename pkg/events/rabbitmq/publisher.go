@@ -20,10 +20,6 @@ func provideRabbitMQPublisher(logger *zerolog.Logger, s fx.Shutdowner) events.Ev
 	publisher, err := NewRabbitMQPublisher(logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create publisher")
-		err = s.Shutdown()
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to shutdown")
-		}
 	}
 
 	return publisher
@@ -55,10 +51,6 @@ func startPublisher(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, pu
 					err := publisher.StartPublisher(context.Background())
 					if err != nil {
 						logger.Error().Err(err).Msg("failed to start publisher")
-						err = s.Shutdown()
-						if err != nil {
-							logger.Error().Err(err).Msg("failed to shutdown")
-						}
 					}
 				}()
 

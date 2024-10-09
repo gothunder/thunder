@@ -39,6 +39,9 @@ const (
 )
 
 func (r *rabbitmqPublisher) healthCheckLoop() {
+	if r.chManager == nil {
+		return
+	}
 	logger := r.logger.With().Str("component", "publisher_health_check").Logger()
 
 	ticker := time.NewTicker(timeCheckTicker)

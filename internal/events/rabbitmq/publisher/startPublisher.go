@@ -11,6 +11,9 @@ func (r *rabbitmqPublisher) StartPublisher(ctx context.Context) error {
 	go r.healthCheckLoop()
 
 	for {
+		if r.chManager == nil {
+			return eris.New("r.chManager is nil! Invalid publisher")
+		}
 		err := r.chManager.Channel.Confirm(false)
 		if err != nil {
 			return eris.Wrap(err, "failed to enable publisher confirms")

@@ -29,6 +29,9 @@ type message struct {
 // The message is published asynchronously
 // The message will be republished if the connection is lost
 func (r *rabbitmqPublisher) Publish(ctx context.Context, topic string, payload interface{}) error {
+	if r.chManager == nil {
+		return eris.New("r.chManager is nil! Invalid publisher")
+	}
 	ctx, span := otel.Tracer(scope).Start(ctx, "rabbitmqPublisher.Publish",
 		trace.WithSpanKind(trace.SpanKindInternal),
 		trace.WithAttributes(
