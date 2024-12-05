@@ -98,7 +98,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 		return eris.Wrap(err, "failed to declare exchange")
 	}
 
-	_, err = r.chManager.Channel.QueueDeclarePassive(
+	_, err = r.chManager.Channel.QueueDeclare(
 		dlxName,
 		true,
 		false,
