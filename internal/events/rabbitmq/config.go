@@ -20,6 +20,8 @@ const (
 	DefaultMaxInterval = backoff.DefaultMaxInterval
 	// DefaultMaxRetries is the default max retries for the backoff
 	DefaultMaxRetries = 5
+	// DefaultDeleteDLX is the default value for deleting the DLX before creating it
+	DefaultDeleteDLX = false
 )
 
 type Config struct {
@@ -35,6 +37,8 @@ type Config struct {
 	RandomizationFactor float64
 	Multiplier          float64
 	MaxInterval         time.Duration
+
+	DeleteDLX bool
 }
 
 type RabbitmqConfigOption func(*Config)
@@ -50,6 +54,7 @@ func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 		RandomizationFactor: DefaultRandomizationFactor,
 		Multiplier:          DefaultMultiplier,
 		MaxInterval:         DefaultMaxInterval,
+		DeleteDLX:           DefaultDeleteDLX,
 	}
 
 	if c.ExchangeName == "" {
@@ -133,6 +138,14 @@ func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 		parsedMaxInterval, err := time.ParseDuration(maxInterval)
 		if err == nil {
 			c.MaxInterval = parsedMaxInterval
+		}
+	}
+
+	deleteDLX := os.Getenv("RABBIT_DELETE_DLX")
+	if deleteDLX != "" {
+		parsedDeleteDLX, err := strconv.ParseBool(deleteDLX)
+		if err == nil {
+			c.DeleteDLX = parsedDeleteDLX
 		}
 	}
 
