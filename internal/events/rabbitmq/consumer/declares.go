@@ -1,6 +1,8 @@
 package consumer
 
 import (
+	"strings"
+
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
 )
@@ -91,7 +93,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 		amqp091.QueueMaxLenArg:     10000,                    // 10k messages
 	}
 
-	// Attempt to passively declare the queue to check if it exists and has the same properties
+	// Try passive declare first
 	_, err := r.chManager.Channel.QueueDeclarePassive(
 		dlxName,
 		true,
@@ -102,9 +104,21 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 	)
 
 	if err != nil {
-		// Queue does not exist or properties are different, delete and recreate
-		_, _ = r.chManager.Channel.QueueDelete(dlxName, false, false, false)
+		if !strings.Contains(err.Error(), "NOT_FOUND") &&
+			!strings.Contains(err.Error(), "inequivalent arg") {
+			return eris.Wrap(err, "unexpected error checking queue")
+		}
 
+		// Queue doesn't exist or has different properties - create/recreate
+		if strings.Contains(err.Error(), "inequivalent arg") {
+			// Delete existing queue if properties don't match
+			_, err := r.chManager.Channel.QueueDelete(dlxName, false, false, false)
+			if err != nil {
+				return eris.Wrap(err, "failed to delete existing queue")
+			}
+		}
+
+		// Declare exchange
 		err = r.chManager.Channel.ExchangeDeclare(
 			dlxName,
 			"fanout",
@@ -118,6 +132,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 			return eris.Wrap(err, "failed to declare exchange")
 		}
 
+		// Declare queue
 		_, err = r.chManager.Channel.QueueDeclare(
 			dlxName,
 			true,
@@ -130,6 +145,7 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 			return eris.Wrap(err, "failed to declare queue")
 		}
 
+		// Bind queue
 		err = r.chManager.Channel.QueueBind(
 			dlxName,
 			"",
@@ -141,5 +157,6 @@ func (r *rabbitmqConsumer) deadLetterDeclare(dlxName string) error {
 			return eris.Wrap(err, "failed to bind queue")
 		}
 	}
+
 	return nil
 }
