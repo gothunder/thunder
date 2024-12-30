@@ -18,8 +18,9 @@ type BareServer struct {
 type NewServerParams struct {
 	fx.In
 
-	Logger       *zerolog.Logger
-	Interceptors []grpc.UnaryServerInterceptor `group:"interceptors"`
+	Logger                *zerolog.Logger
+	Interceptors          []grpc.UnaryServerInterceptor `group:"interceptors"`
+	MaxReceiveMessageSize *int
 }
 
 func NewServer(params NewServerParams) *BareServer {
@@ -32,6 +33,12 @@ func NewServer(params NewServerParams) *BareServer {
 		append(params.Interceptors, grpcLoggerInterceptor(params.Logger))...,
 	)
 
+	// default max message size is 4MB
+	maxReceiveMessageSize := 4 * 1024 * 1024
+	if params.MaxReceiveMessageSize != nil {
+		maxReceiveMessageSize = *params.MaxReceiveMessageSize
+	}
+
 	sv := grpc.NewServer(
 		grpc.StatsHandler(
 			otelgrpc.NewServerHandler(),
@@ -39,6 +46,7 @@ func NewServer(params NewServerParams) *BareServer {
 		grpc.ChainUnaryInterceptor(
 			params.Interceptors...,
 		),
+		grpc.MaxRecvMsgSize(maxReceiveMessageSize),
 	)
 	grpcServer.Server = sv
 
