@@ -22,6 +22,8 @@ const (
 	DefaultMaxRetries = 5
 	// DefaultDeleteDLX is the default value for deleting the DLX before creating it
 	DefaultDeleteDLX = false
+	// DefaultDisableConsumer is the default value for disabling the consumer
+	DefaultDisableConsumer = false
 )
 
 type Config struct {
@@ -38,7 +40,8 @@ type Config struct {
 	Multiplier          float64
 	MaxInterval         time.Duration
 
-	DeleteDLX bool
+	DeleteDLX       bool
+	DisableConsumer bool
 }
 
 type RabbitmqConfigOption func(*Config)
@@ -55,6 +58,7 @@ func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 		Multiplier:          DefaultMultiplier,
 		MaxInterval:         DefaultMaxInterval,
 		DeleteDLX:           DefaultDeleteDLX,
+		DisableConsumer:     DefaultDisableConsumer,
 	}
 
 	if c.ExchangeName == "" {
@@ -146,6 +150,14 @@ func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 		parsedDeleteDLX, err := strconv.ParseBool(deleteDLX)
 		if err == nil {
 			c.DeleteDLX = parsedDeleteDLX
+		}
+	}
+
+	disableConsumer := os.Getenv("RABBIT_DISABLE_CONSUMER")
+	if disableConsumer != "" {
+		parsedDisableConsumer, err := strconv.ParseBool(disableConsumer)
+		if err == nil {
+			c.DisableConsumer = parsedDisableConsumer
 		}
 	}
 

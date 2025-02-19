@@ -11,6 +11,13 @@ func (r *rabbitmqConsumer) Subscribe(
 	ctx context.Context,
 	handler events.Handler,
 ) error {
+	if r.config.DisableConsumer {
+		r.logger.Info().Msg("consumer is disabled, skipping subscription")
+		// Block until context is cancelled
+		<-ctx.Done()
+		return nil
+	}
+
 	for {
 		// Start the go routines that will consume messages
 		err := r.startGoRoutines(handler)
