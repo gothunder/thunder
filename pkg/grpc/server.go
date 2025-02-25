@@ -20,7 +20,7 @@ type NewServerParams struct {
 
 	Logger                *zerolog.Logger
 	Interceptors          []grpc.UnaryServerInterceptor `group:"interceptors"`
-	MaxReceiveMessageSize *int
+	MaxReceiveMessageSize *int                          `name:"max_receive_message_size" optional:"true"`
 }
 
 func NewServer(params NewServerParams) *BareServer {
