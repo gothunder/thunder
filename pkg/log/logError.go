@@ -3,6 +3,8 @@ package log
 import (
 	"context"
 
+	thuderContext "github.com/gothunder/thunder/pkg/context"
+
 	"github.com/TheRafaBonin/roxy"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -13,6 +15,7 @@ func LogError(ctx context.Context, err error) {
 	var loggerEvent *zerolog.Event
 
 	logger := log.Ctx(ctx).With().Stack().Logger()
+
 	logLevel := roxy.GetErrorLogLevel(err)
 
 	if err == nil {
@@ -38,6 +41,11 @@ func LogError(ctx context.Context, err error) {
 		loggerEvent = logger.Fatal()
 	default:
 		loggerEvent = logger.Error()
+	}
+
+	requestID := thuderContext.RequestIDFromContext(ctx)
+	if requestID != "" {
+		loggerEvent = loggerEvent.Str("requestID", requestID)
 	}
 
 	loggerEvent.Err(err).Msg(roxy.Cause(err).Error())
