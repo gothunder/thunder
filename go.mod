@@ -6,7 +6,7 @@ toolchain go1.21.6
 
 require (
 	entgo.io/ent v0.12.5
-	github.com/99designs/gqlgen v0.17.43
+	github.com/99designs/gqlgen v0.17.76
 	github.com/TheRafaBonin/roxy v0.7.0
 	github.com/ThreeDotsLabs/watermill v1.3.5
 	github.com/cenkalti/backoff/v4 v4.2.1
