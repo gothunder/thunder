@@ -31,7 +31,6 @@ func WithConsumerName(name string) rabbitmq.RabbitmqConfigOption {
 	}
 }
 
-// WithConsumerConcurrency sets the number of concurrent message handlers
 func WithConsumerConcurrency(concurrency int) rabbitmq.RabbitmqConfigOption {
 	return func(c *rabbitmq.Config) {
 		c.ConsumerConcurrency = concurrency
