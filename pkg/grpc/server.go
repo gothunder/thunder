@@ -26,11 +26,17 @@ type NewServerParams struct {
 func NewServer(params NewServerParams) *BareServer {
 	grpcServer := &BareServer{}
 
-	// We want to add the MetadataPropagator interceptor first and
-	// logger interceptor last.
+	// MetadataPropagator first, then the base logger, then the supplied
+	// interceptors. The base logger MUST come before supplied interceptors:
+	// they enrich the context logger (e.g. audit fields, trace_id), and if
+	// the base logger ran after them it would replace the context logger and
+	// silently drop that enrichment before the handler runs.
 	params.Interceptors = append(
-		[]grpc.UnaryServerInterceptor{UnaryServerMetadataPropagator},
-		append(params.Interceptors, grpcLoggerInterceptor(params.Logger))...,
+		[]grpc.UnaryServerInterceptor{
+			UnaryServerMetadataPropagator,
+			grpcLoggerInterceptor(params.Logger),
+		},
+		params.Interceptors...,
 	)
 
 	// default max message size is 4MB
