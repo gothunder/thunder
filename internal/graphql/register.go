@@ -45,10 +45,7 @@ func CreateHandler(graphQLSchema graphql.ExecutableSchema) *handler.Server {
 	graphqlHandler.SetErrorPresenter(errorPresenter)
 
 	// Set the panic handler
-	graphqlHandler.SetRecoverFunc(func(ctx context.Context, p interface{}) error {
-		recoverer.Recoverer(ctx, p)
-		return internalError
-	})
+	graphqlHandler.SetRecoverFunc(recoverFunc)
 
 	// Add a middleware to log the request
 	graphqlHandler.AroundOperations(aroundOperations)
@@ -59,10 +56,16 @@ func CreateHandler(graphQLSchema graphql.ExecutableSchema) *handler.Server {
 	return graphqlHandler
 }
 
-// A default internal error when something goes wrong
-var internalError *gqlerror.Error = &gqlerror.Error{
-	Message: http.StatusText(http.StatusInternalServerError),
-	Extensions: map[string]interface{}{
-		"status": http.StatusInternalServerError,
-	},
+func recoverFunc(ctx context.Context, p interface{}) error {
+	recoverer.Recoverer(ctx, p)
+	return newInternalError()
+}
+
+func newInternalError() *gqlerror.Error {
+	return &gqlerror.Error{
+		Message: http.StatusText(http.StatusInternalServerError),
+		Extensions: map[string]interface{}{
+			"status": http.StatusInternalServerError,
+		},
+	}
 }

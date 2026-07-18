@@ -43,5 +43,5 @@ func errorPresenter(ctx context.Context, err error) *gqlerror.Error {
 		Str("query", query).
 		Msg("response not provided")
 
-	return internalError
+	return newInternalError()
 }
