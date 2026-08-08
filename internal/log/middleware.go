@@ -3,6 +3,7 @@ package log
 import (
 	"net/http"
 
+	thunderCtx "github.com/gothunder/thunder/pkg/context"
 	"github.com/rs/zerolog"
 )
 
@@ -13,6 +14,11 @@ func Middleware(logger *zerolog.Logger) func(next http.Handler) http.Handler {
 				With().
 				Str("ip", r.RemoteAddr).
 				Logger()
+
+			requestID := thunderCtx.RequestIDFromContext(r.Context())
+			if requestID != "" {
+				log = log.With().Str("requestID", requestID).Logger()
+			}
 
 			// Add logger to context
 			ctx := log.WithContext(r.Context())
