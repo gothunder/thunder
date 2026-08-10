@@ -10,15 +10,29 @@ import (
 	"google.golang.org/grpc"
 )
 
-// TestSuppliedInterceptorEnrichmentReachesHandler is the regression for the
-// interceptor-ordering bug: the base logger interceptor used to run AFTER
-// supplied interceptors, replacing the context logger and silently dropping
-// any enrichment (trace_id, audit fields) before the handler executed.
+// chain replicates grpc.ChainUnaryInterceptor semantics: interceptors run in
+// slice order, each wrapping the next, with the handler innermost.
+func chain(interceptors []grpc.UnaryServerInterceptor, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) grpc.UnaryHandler {
+	chained := handler
+	for i := len(interceptors) - 1; i >= 0; i-- {
+		ic := interceptors[i]
+		next := chained
+		chained = func(ctx context.Context, req interface{}) (interface{}, error) {
+			return ic(ctx, req, info, next)
+		}
+	}
+	return chained
+}
+
+// TestComposedChainPreservesSuppliedEnrichment is the regression for the
+// interceptor-ordering bug: the base logger interceptor used to be appended
+// AFTER supplied interceptors, replacing the context logger and silently
+// dropping their enrichment (trace_id, audit fields) before the handler ran.
 //
-// It simulates a supplied interceptor that enriches the context logger (the
-// same pattern backend-commons logs.UnaryServerInterceptor uses) and asserts
-// the handler's log line actually carries the enriched fields.
-func TestSuppliedInterceptorEnrichmentReachesHandler(t *testing.T) {
+// Unlike a hand-assembled chain, this test takes the interceptor slice from
+// composeInterceptors — the same production function NewServer uses — so
+// reverting the ordering there makes this test fail.
+func TestComposedChainPreservesSuppliedEnrichment(t *testing.T) {
 	var buf bytes.Buffer
 	logger := zerolog.New(&buf)
 
@@ -37,14 +51,8 @@ func TestSuppliedInterceptorEnrichmentReachesHandler(t *testing.T) {
 		return handler(l.WithContext(ctx), req)
 	}
 
-	// Compose the chain the same way NewServer does.
-	interceptors := append(
-		[]grpc.UnaryServerInterceptor{
-			UnaryServerMetadataPropagator,
-			grpcLoggerInterceptor(&logger),
-		},
-		enriching,
-	)
+	// Compose through the PRODUCTION function used by NewServer.
+	interceptors := composeInterceptors(&logger, []grpc.UnaryServerInterceptor{enriching})
 
 	// Handler logs from its context, like real service handlers do.
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
@@ -52,18 +60,8 @@ func TestSuppliedInterceptorEnrichmentReachesHandler(t *testing.T) {
 		return "ok", nil
 	}
 
-	// Manually chain (mirrors grpc.ChainUnaryInterceptor semantics).
-	chained := handler
-	for i := len(interceptors) - 1; i >= 0; i-- {
-		ic := interceptors[i]
-		next := chained
-		info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Do"}
-		chained = func(ctx context.Context, req interface{}) (interface{}, error) {
-			return ic(ctx, req, info, next)
-		}
-	}
-
-	if _, err := chained(context.Background(), "req"); err != nil {
+	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Do"}
+	if _, err := chain(interceptors, info, handler)(context.Background(), "req"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -73,9 +71,33 @@ func TestSuppliedInterceptorEnrichmentReachesHandler(t *testing.T) {
 	}
 
 	if entry["trace_id"] != "trace-abc-123" {
-		t.Errorf("handler log trace_id = %v, want trace-abc-123 (enrichment was dropped)", entry["trace_id"])
+		t.Errorf("handler log trace_id = %v, want trace-abc-123 (supplied enrichment was dropped)", entry["trace_id"])
 	}
 	if entry["grpc_method"] != "/test.Service/Do" {
 		t.Errorf("handler log grpc_method = %v, want /test.Service/Do", entry["grpc_method"])
+	}
+}
+
+// TestComposedChainBaseLoggerReachesHandlerWithoutSupplied guards the base
+// behavior: with no supplied interceptors, the handler still gets the base
+// logger in its context.
+func TestComposedChainBaseLoggerReachesHandlerWithoutSupplied(t *testing.T) {
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	interceptors := composeInterceptors(&logger, nil)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		zerolog.Ctx(ctx).Info().Str("marker", "base").Msg("handled")
+		return "ok", nil
+	}
+
+	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Do"}
+	if _, err := chain(interceptors, info, handler)(context.Background(), "req"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !bytes.Contains(buf.Bytes(), []byte(`"marker":"base"`)) {
+		t.Errorf("handler did not log through the base logger: %s", buf.String())
 	}
 }
