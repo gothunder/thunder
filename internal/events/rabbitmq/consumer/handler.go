@@ -40,7 +40,16 @@ func (r *rabbitmqConsumer) handler(msgs <-chan amqp.Delivery, handler events.Han
 			),
 		)
 
-		logger := r.logger.With().Str("topic", topic).Ctx(ctx).Logger()
+		logCtx := r.logger.With().Str("topic", topic).Ctx(ctx)
+		// Enrich with the OTEL trace_id so every log across the message
+		// lifecycle (decode errors, ack/nack failures, retries, and the
+		// application handler itself) carries the same id as the producer
+		// span. ExtractTrace above already restored the trace context from
+		// the message headers.
+		if sc := trace.SpanContextFromContext(ctx); sc.HasTraceID() {
+			logCtx = logCtx.Str("trace_id", sc.TraceID().String())
+		}
+		logger := logCtx.Logger()
 		ctx = logger.WithContext(ctx)
 		ctx = thunderContext.ContextWithMetadata(ctx, metadataFromAmqpTable(msg.Headers))
 		// ensures that the correlation ID is propagated or generated
