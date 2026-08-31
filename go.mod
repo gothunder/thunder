@@ -17,8 +17,8 @@ require (
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.31.0
 	github.com/streadway/amqp v1.0.0
-	github.com/stretchr/testify v1.11.1
-	github.com/vektah/gqlparser/v2 v2.5.32
+	github.com/stretchr/testify v1.12.1
+	github.com/vektah/gqlparser/v2 v2.5.37
 	github.com/vektra/mockery/v2 v2.33.3
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.opentelemetry.io/otel v1.22.0
@@ -52,6 +52,7 @@ require (
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.opentelemetry.io/contrib v1.21.1 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
@@ -89,7 +90,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.15.0 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.47.0
