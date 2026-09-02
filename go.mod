@@ -3,14 +3,14 @@ module github.com/gothunder/thunder
 go 1.25
 
 require (
-	entgo.io/ent v0.12.5
+	entgo.io/ent v0.14.6
 	github.com/99designs/gqlgen v0.17.87
 	github.com/TheRafaBonin/roxy v0.7.0
 	github.com/ThreeDotsLabs/watermill v1.3.5
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/onsi/ginkgo/v2 v2.12.1
 	github.com/onsi/gomega v1.27.10
 	github.com/rabbitmq/amqp091-go v1.8.1
@@ -27,9 +27,11 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.14.1-0.20230918065911-83ad451a4935 // indirect
+	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
+	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/chigopher/pathlib v0.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
@@ -40,7 +42,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/hashicorp/hcl/v2 v2.17.0 // indirect
+	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -49,7 +51,8 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
-	github.com/zclconf/go-cty v1.13.2 // indirect
+	github.com/zclconf/go-cty v1.14.4 // indirect
+	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	go.opentelemetry.io/contrib v1.21.1 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
