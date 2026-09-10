@@ -65,13 +65,14 @@ func (r *rabbitmqPublisher) confirmWithRetry(ctx context.Context) error {
 			return ctx.Err()
 		case reconnectionErr := <-r.chManager.NotifyReconnection:
 			// The manager reconnected while we were waiting. We consume the
-			// notification here so the loop above doesn't read a stale one.
+			// notification here so the loop above doesn't read a stale one, and
+			// retry straight away on the fresh channel. The budget is not reset,
+			// so a permanent failure still gives up instead of idling forever.
 			if reconnectionErr != nil {
 				return eris.Wrap(reconnectionErr, "failed to reconnect to the amqp channel")
 			}
 
 			r.logger.Info().Msg("restarting publisher after reconnection")
-			exponentialBackOff.Reset()
 		case <-time.After(interval):
 		}
 	}

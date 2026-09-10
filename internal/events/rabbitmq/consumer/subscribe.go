@@ -70,15 +70,20 @@ func (r *rabbitmqConsumer) startGoRoutinesWithRetry(ctx context.Context, handler
 			return ctx.Err()
 		case reconnectionErr := <-r.chManager.NotifyReconnection:
 			// The manager noticed the broken channel before we did and already
-			// reconnected. We have to consume that notification here, otherwise
-			// Subscribe would read it right after our retry succeeds and
+			// reconnected. We consume that notification here, otherwise
+			// Subscribe would likely read it right after our retry succeeds and
 			// register a second consumer on the very same channel.
+			//
+			// We retry straight away on the fresh channel, but we deliberately
+			// don't reset the budget: a permanent failure (a queue declared with
+			// different arguments, say) closes the channel on every attempt, and
+			// resetting would keep the pod alive and idle forever instead of
+			// letting it give up and crashloop.
 			if reconnectionErr != nil {
 				return eris.Wrap(reconnectionErr, "failed to reconnect to the amqp channel")
 			}
 
 			r.logger.Info().Msg("restarting consumer after reconnection")
-			exponentialBackOff.Reset()
 		case <-time.After(interval):
 		}
 	}
