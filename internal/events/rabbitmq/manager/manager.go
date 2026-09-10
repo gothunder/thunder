@@ -2,6 +2,7 @@ package manager
 
 import (
 	"sync"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rotisserie/eris"
@@ -21,9 +22,11 @@ type ChannelManager struct {
 	NotifyReconnection chan error
 }
 
-func NewChannelManager(url string, conf amqp.Config, log *zerolog.Logger) (*ChannelManager, error) {
+func NewChannelManager(url string, conf amqp.Config, log *zerolog.Logger, initialConnectionBudget time.Duration) (*ChannelManager, error) {
 	// First we create a new channel and connection
-	conn, ch, err := connect(url, conf)
+	conn, ch, err := connectWithRetry(func() (*amqp.Connection, *amqp.Channel, error) {
+		return connect(url, conf)
+	}, log, initialConnectionBudget)
 	if err != nil {
 		return nil, eris.Wrap(err, "getting the first channel")
 	}

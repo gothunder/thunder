@@ -29,12 +29,16 @@ type rabbitmqConsumer struct {
 
 	// tracing
 	tracePropagator *tracing.AmqpTracePropagator
+
+	// Registers the consumer on the current channel.
+	// It is a field so the retry loop can be tested without a live broker.
+	startGoRoutinesFunc func(events.Handler) error
 }
 
 func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger, opts ...rabbitmq.RabbitmqConfigOption) (events.EventConsumer, error) {
 	config := rabbitmq.LoadConfig(log, opts...)
 
-	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log)
+	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log, config.InitialConnectionRetryBudget)
 	if err != nil {
 		return &rabbitmqConsumer{}, err
 	}
@@ -50,6 +54,8 @@ func NewConsumer(amqpConf amqp.Config, log *zerolog.Logger, opts ...rabbitmq.Rab
 
 		tracePropagator: tracing.NewAmqpTracing(log),
 	}
+
+	consumer.startGoRoutinesFunc = consumer.startGoRoutines
 
 	return &consumer, nil
 }
