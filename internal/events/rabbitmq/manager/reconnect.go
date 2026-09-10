@@ -3,14 +3,12 @@ package manager
 import (
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/rotisserie/eris"
 )
 
 // Try to reconnect to amqp, if we fail to reconnect, then we will wait and try again
 func (chManager *ChannelManager) reconnect() error {
-	exponentialBackOff := backoff.NewExponentialBackOff()
-	exponentialBackOff.MaxElapsedTime = 15 * time.Minute
+	exponentialBackOff := NewExponentialBackOff(ReconnectionBudget)
 
 	// We'll keep retrying until we get a successful connection
 	for {

@@ -58,7 +58,7 @@ type rabbitmqPublisher struct {
 func NewPublisher(amqpConf amqp.Config, log *zerolog.Logger) (events.EventPublisher, error) {
 	config := rabbitmq.LoadConfig(log)
 
-	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log)
+	chManager, err := manager.NewChannelManager(config.URL, amqpConf, log, config.InitialConnectionRetryBudget)
 	if err != nil {
 		return &rabbitmqPublisher{}, err
 	}

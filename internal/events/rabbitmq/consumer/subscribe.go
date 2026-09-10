@@ -2,7 +2,9 @@ package consumer
 
 import (
 	"context"
+	"time"
 
+	"github.com/gothunder/thunder/internal/events/rabbitmq/manager"
 	"github.com/gothunder/thunder/pkg/events"
 	"github.com/rotisserie/eris"
 )
@@ -20,18 +22,70 @@ func (r *rabbitmqConsumer) Subscribe(
 
 	for {
 		// Start the go routines that will consume messages
-		err := r.startGoRoutines(handler)
+		err := r.startGoRoutinesWithRetry(ctx, handler)
 		if err != nil {
 			return eris.Wrap(err, "failed to start go routines")
 		}
 
 		// Check if the channel reconnects
-		err = <-r.chManager.NotifyReconnection
-		if err != nil {
-			return eris.Wrap(err, "failed to reconnect to the amqp channel")
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err = <-r.chManager.NotifyReconnection:
+			if err != nil {
+				return eris.Wrap(err, "failed to reconnect to the amqp channel")
+			}
 		}
 
 		r.logger.Info().Msg("restarting consumer after reconnection")
+	}
+}
+
+// startGoRoutinesWithRetry registers the consumer, retrying with the same
+// backoff used for reconnections.
+//
+// The broker can refuse the registration right after a successful reconnection
+// (a 503 while it is still settling). That used to kill the subscription on the
+// first try, leaving the pod alive and ready but consuming nothing at all.
+func (r *rabbitmqConsumer) startGoRoutinesWithRetry(ctx context.Context, handler events.Handler) error {
+	exponentialBackOff := manager.NewExponentialBackOff(manager.ReconnectionBudget)
+
+	for {
+		// Nothing is added to the wait group until the registration succeeds,
+		// so a retry cannot double count the consumer handlers.
+		err := r.startGoRoutinesFunc(handler)
+		if err == nil {
+			return nil
+		}
+
+		interval := exponentialBackOff.NextBackOff()
+		if interval == exponentialBackOff.Stop {
+			return err
+		}
+
+		r.logger.Error().Err(err).Msgf("failed to register the consumer, retrying in %s", interval)
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case reconnectionErr := <-r.chManager.NotifyReconnection:
+			// The manager noticed the broken channel before we did and already
+			// reconnected. We consume that notification here, otherwise
+			// Subscribe would likely read it right after our retry succeeds and
+			// register a second consumer on the very same channel.
+			//
+			// We retry straight away on the fresh channel, but we deliberately
+			// don't reset the budget: a permanent failure (a queue declared with
+			// different arguments, say) closes the channel on every attempt, and
+			// resetting would keep the pod alive and idle forever instead of
+			// letting it give up and crashloop.
+			if reconnectionErr != nil {
+				return eris.Wrap(reconnectionErr, "failed to reconnect to the amqp channel")
+			}
+
+			r.logger.Info().Msg("restarting consumer after reconnection")
+		case <-time.After(interval):
+		}
 	}
 }
 
@@ -42,7 +96,13 @@ func (r *rabbitmqConsumer) startGoRoutines(handler events.Handler) error {
 		return err
 	}
 
-	msgs, err := r.chManager.Channel.Consume(
+	// A concurrent reconnection may have swapped the channel, so we read the
+	// current one under the lock.
+	r.chManager.ChannelMux.RLock()
+	channel := r.chManager.Channel
+	r.chManager.ChannelMux.RUnlock()
+
+	msgs, err := channel.Consume(
 		r.config.QueueName,
 		r.config.ConsumerName,
 		false,

@@ -2,6 +2,9 @@ package rabbitmq
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sync/atomic"
 
 	"github.com/gothunder/thunder/internal/events/rabbitmq"
 	"github.com/gothunder/thunder/internal/events/rabbitmq/consumer"
@@ -16,72 +19,70 @@ type namedHandlerParams struct {
 	NamedHandlers []events.NamedHandler `group:"named_handlers"`
 }
 
-func registerNamedConsumers(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, params namedHandlerParams) {
+func registerNamedConsumers(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, params namedHandlerParams) error {
 	for _, namedHandler := range params.NamedHandlers {
-		registerNamedConsumer(lc, s, logger, namedHandler)
+		if err := registerNamedConsumer(lc, s, logger, namedHandler); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func registerNamedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, namedHandler events.NamedHandler) {
+func registerNamedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, namedHandler events.NamedHandler) error {
 	consumer, err := NewRabbitMQConsumer(logger, WithQueueNamePosfix(namedHandler.QueuePosfix()))
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create consumer")
-		return
+		return fmt.Errorf("create rabbitmq consumer: %w", err)
 	}
 
-	registerProvidedConsumer(lc, s, logger, namedHandler, consumer)
+	return registerProvidedConsumer(lc, s, logger, namedHandler, consumer)
 }
 
-func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler) {
+func registerConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler) error {
 	consumer, err := NewRabbitMQConsumer(logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create consumer")
-		return
+		return fmt.Errorf("create rabbitmq consumer: %w", err)
 	}
 
-	lc.Append(
-		fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				go func() {
-					err := consumer.Subscribe(ctx, handler)
-					if err != nil {
-						logger.Error().Err(err).Msg("failed to subscribe to topics")
-					}
-				}()
-
-				return nil
-			},
-			OnStop: func(ctx context.Context) error {
-				logger.Info().Msg("stopping consumer")
-
-				err := consumer.Close(ctx)
-				if err != nil {
-					logger.Error().Err(err).Msg("error closing consumer")
-					return err
-				}
-
-				logger.Info().Msg("consumer stopped")
-				return nil
-			},
-		},
-	)
+	return registerProvidedConsumer(lc, s, logger, handler, consumer)
 }
 
-func registerProvidedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler, consumer events.EventConsumer) {
+func registerProvidedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.Logger, handler events.Handler, consumer events.EventConsumer) error {
+	var (
+		cancel   context.CancelFunc
+		stopping atomic.Bool
+	)
+
 	lc.Append(
 		fx.Hook{
-			OnStart: func(ctx context.Context) error {
+			OnStart: func(context.Context) error {
+				// The subscription outlives the start hook, so it cannot use
+				// the OnStart context: fx cancels that one as soon as startup
+				// finishes.
+				var subscribeCtx context.Context
+				subscribeCtx, cancel = context.WithCancel(context.Background())
+
 				go func() {
-					err := consumer.Subscribe(ctx, handler)
-					if err != nil {
-						logger.Error().Err(err).Msg("failed to subscribe to topics")
+					err := consumer.Subscribe(subscribeCtx, handler)
+					if err == nil || errors.Is(err, context.Canceled) || stopping.Load() {
+						return
 					}
+
+					logger.Error().Err(err).Msg("failed to subscribe to topics")
+					shutdown(logger, s)
 				}()
 
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
 				logger.Info().Msg("stopping consumer")
+				stopping.Store(true)
+
+				if cancel != nil {
+					cancel()
+				}
 
 				err := consumer.Close(ctx)
 				if err != nil {
@@ -94,6 +95,8 @@ func registerProvidedConsumer(lc fx.Lifecycle, s fx.Shutdowner, logger *zerolog.
 			},
 		},
 	)
+
+	return nil
 }
 
 func NewRabbitMQConsumer(logger *zerolog.Logger, opts ...rabbitmq.RabbitmqConfigOption) (events.EventConsumer, error) {

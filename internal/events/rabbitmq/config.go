@@ -20,6 +20,11 @@ const (
 	DefaultMaxInterval = backoff.DefaultMaxInterval
 	// DefaultMaxRetries is the default max retries for the backoff
 	DefaultMaxRetries = 5
+	// DefaultInitialConnectionRetryBudget is the default total time spent
+	// retrying the very first connection to the broker. It is short on purpose:
+	// the first dial happens while the fx graph is being built, so the process
+	// is not listening on any port yet.
+	DefaultInitialConnectionRetryBudget = 30 * time.Second
 	// DefaultDeleteDLX is the default value for deleting the DLX before creating it
 	DefaultDeleteDLX = false
 	// DefaultDisableConsumer is the default value for disabling the consumer
@@ -40,6 +45,8 @@ type Config struct {
 	Multiplier          float64
 	MaxInterval         time.Duration
 
+	InitialConnectionRetryBudget time.Duration
+
 	DeleteDLX       bool
 	DisableConsumer bool
 }
@@ -57,8 +64,11 @@ func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 		RandomizationFactor: DefaultRandomizationFactor,
 		Multiplier:          DefaultMultiplier,
 		MaxInterval:         DefaultMaxInterval,
-		DeleteDLX:           DefaultDeleteDLX,
-		DisableConsumer:     DefaultDisableConsumer,
+
+		InitialConnectionRetryBudget: DefaultInitialConnectionRetryBudget,
+
+		DeleteDLX:       DefaultDeleteDLX,
+		DisableConsumer: DefaultDisableConsumer,
 	}
 
 	if c.ExchangeName == "" {
@@ -142,6 +152,14 @@ func LoadConfig(log *zerolog.Logger, opts ...RabbitmqConfigOption) Config {
 		parsedMaxInterval, err := time.ParseDuration(maxInterval)
 		if err == nil {
 			c.MaxInterval = parsedMaxInterval
+		}
+	}
+
+	initialConnectionRetryBudget := os.Getenv("RABBIT_INITIAL_CONNECTION_RETRY_BUDGET")
+	if initialConnectionRetryBudget != "" {
+		parsedInitialConnectionRetryBudget, err := time.ParseDuration(initialConnectionRetryBudget)
+		if err == nil {
+			c.InitialConnectionRetryBudget = parsedInitialConnectionRetryBudget
 		}
 	}
 
